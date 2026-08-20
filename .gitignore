@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-preview/
+.env.local
+*-service-account*.json
+.firebase/
+coverage/
+*.log
+npm-debug.log*
+
+# PDF de vista previa generado con npm run pdf:preview
+dist-preview

@@ -1,0 +1,209 @@
+/* ---------------------------------------------------------------------------
+   Pantalla de Estadísticas. Fichero nuevo: no toca src/styles.css (otro
+   agente trabaja ahí en paralelo). Reutiliza las variables definidas en
+   :root por styles.css y las clases genéricas de página (.pagina,
+   .pagina-encabezado, .selector-mes, .avisos, .mensaje-error…), y solo
+   define aquí lo que es propio de esta pantalla, con el prefijo `estad-`
+   para no colisionar con nada global.
+   --------------------------------------------------------------------------- */
+
+.estad-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 0 0 2rem;
+}
+
+.estad-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  box-shadow: var(--sombra-tarjeta);
+  padding: 1rem 1.15rem;
+}
+
+.estad-tarjeta-numero {
+  font-family: var(--fuente-titulo);
+  font-size: 1.7rem;
+  color: var(--color-acento-oscuro);
+  line-height: 1.1;
+}
+
+.estad-tarjeta-etiqueta {
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.estad-tarjeta-detalle {
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--color-texto);
+}
+
+.estad-tarjeta-meses {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-texto-suave);
+  word-break: break-word;
+}
+
+/* Barra comparando carga real contra la meta (base…cap). Un <div> con CSS,
+   nada de librerías de gráficos: así lo pide CLAUDE.md. */
+.estad-barra {
+  position: relative;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #f0e9d8;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.estad-barra-relleno {
+  position: absolute;
+  inset: 0;
+  width: var(--estad-barra-pct, 0%);
+  background: var(--color-acento);
+  border-radius: inherit;
+}
+
+/* Secciones de tabla ------------------------------------------------------- */
+
+.estad-seccion {
+  margin: 0 0 2.5rem;
+}
+
+.estad-seccion h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.75rem;
+}
+
+.estad-tabla-envoltura {
+  overflow-x: auto;
+}
+
+.estad-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  font-size: 0.85rem;
+}
+
+.estad-tabla caption {
+  text-align: left;
+  font-family: var(--fuente-titulo);
+  font-size: 0.95rem;
+  color: var(--color-texto);
+  padding: 0.15rem 0 0.6rem;
+}
+
+.estad-tabla th,
+.estad-tabla td {
+  border-bottom: 1px solid var(--color-borde);
+  padding: 0.5rem 0.65rem;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.estad-tabla thead th {
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+  background: #f6efe2;
+  font-weight: 600;
+}
+
+.estad-tabla tbody th[scope='row'] {
+  text-align: left;
+  white-space: normal;
+  background: #fbf7ee;
+}
+
+.estad-orden {
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.estad-orden:hover {
+  color: var(--color-acento-oscuro);
+}
+
+.estad-fila-below td:first-of-type,
+.estad-marca-below {
+  color: var(--color-acento-oscuro);
+}
+
+.estad-fila-above td:first-of-type,
+.estad-marca-above {
+  color: var(--color-error);
+}
+
+.estad-marca {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 0.72rem;
+}
+
+.estad-fila-vacia td {
+  color: var(--color-texto-suave);
+  text-align: left;
+  white-space: normal;
+}
+
+/* Alertas -------------------------------------------------------------- */
+
+.estad-lista-alertas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.estad-alerta {
+  padding: 0.7rem 0.9rem;
+  border-radius: 0 var(--radio-borde) var(--radio-borde) 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.estad-alerta-warning {
+  border-left: 3px solid var(--color-error);
+  background: var(--color-error-fondo);
+  color: var(--color-error);
+}
+
+.estad-alerta-info {
+  border-left: 3px solid var(--color-acento);
+  background: #fdf8ef;
+  color: var(--color-texto-suave);
+}
+
+.estad-vacio {
+  background: var(--color-superficie);
+  border: 1px dashed var(--color-borde);
+  border-radius: var(--radio-borde);
+  padding: 1.5rem;
+  color: var(--color-texto-suave);
+  max-width: 40rem;
+}

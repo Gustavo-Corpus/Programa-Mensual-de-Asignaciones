@@ -1,0 +1,442 @@
+/* ---------------------------------------------------------------------------
+   Pantallas de catálogo: Personas, Grupos, Responsabilidades, Ajustes.
+
+   Fichero nuevo a propósito (ver CLAUDE.md del encargo): src/styles.css lo
+   trabaja otro agente en paralelo. Reutiliza las variables ya definidas ahí
+   (--color-*, --fuente-*, --radio-borde, --sombra-tarjeta) en vez de
+   redefinirlas.
+   --------------------------------------------------------------------------- */
+
+.nota-explicativa {
+  max-width: 46rem;
+  margin: 0.25rem 0 1.5rem;
+  color: var(--color-texto-suave);
+  font-size: 0.88rem;
+}
+
+.contador-catalogo {
+  margin: 0;
+  color: var(--color-texto-suave);
+  font-size: 0.9rem;
+}
+
+/* Formularios de alta / edición ------------------------------------------- */
+
+.form-catalogo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  box-shadow: var(--sombra-tarjeta);
+  padding: 1rem 1.25rem;
+  margin: 0 0 1.75rem;
+}
+
+.form-catalogo.form-vertical {
+  flex-direction: column;
+  align-items: stretch;
+  max-width: 32rem;
+}
+
+.campo-catalogo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+}
+
+.campo-catalogo input[type='text'],
+.campo-catalogo input[type='number'],
+.campo-catalogo select {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  min-width: 12rem;
+}
+
+.campo-catalogo input:focus-visible,
+.campo-catalogo select:focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 1px;
+}
+
+.campo-catalogo.clave-fija {
+  color: var(--color-texto);
+}
+
+.clave-fija-valor {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.6rem;
+  background: var(--color-fondo);
+  border: 1px dashed var(--color-borde);
+  border-radius: var(--radio-borde);
+  color: var(--color-texto);
+}
+
+.campo-catalogo-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+}
+
+.campo-catalogo-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--color-texto);
+  text-transform: capitalize;
+}
+
+.form-catalogo button,
+.acciones-catalogo button {
+  font: inherit;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  cursor: pointer;
+}
+
+.form-catalogo button:hover:not(:disabled),
+.acciones-catalogo button:hover:not(:disabled) {
+  border-color: var(--color-acento);
+}
+
+.form-catalogo button:disabled,
+.acciones-catalogo button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-catalogo .boton-principal,
+.acciones-catalogo .boton-principal {
+  background: var(--color-acento);
+  border-color: var(--color-acento-oscuro);
+  color: #fff;
+}
+
+/* Listas de entidades ------------------------------------------------------ */
+
+.subtitulo-catalogo {
+  font-size: 0.95rem;
+  color: var(--color-texto-suave);
+  margin: 1.75rem 0 0.75rem;
+}
+
+.subtitulo-catalogo-primero {
+  margin-top: 0;
+}
+
+.lista-catalogo {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fila-catalogo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  padding: 0.6rem 0.9rem;
+}
+
+.fila-catalogo.inactiva {
+  background: var(--color-fondo);
+  color: var(--color-texto-suave);
+}
+
+.fila-catalogo-nombre {
+  flex: 1 1 12rem;
+  font-size: 0.95rem;
+  min-width: 0;
+}
+
+.fila-catalogo.inactiva .fila-catalogo-nombre {
+  color: var(--color-texto-suave);
+}
+
+.etiqueta-inactiva {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+
+.acciones-catalogo {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.acciones-catalogo button {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.7rem;
+}
+
+.boton-peligro-suave {
+  color: var(--color-error) !important;
+  border-color: var(--color-error) !important;
+}
+
+.entrada-en-linea {
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-acento);
+  border-radius: var(--radio-borde);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  min-width: 10rem;
+}
+
+/* Avisos (equipos mal formados, grupos huérfanos, sin días, etc.) --------- */
+
+.avisos-catalogo {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--color-acento);
+  background: #fdf8ef;
+  border-radius: 0 var(--radio-borde) var(--radio-borde) 0;
+  color: var(--color-texto-suave);
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.estado-vacio {
+  color: var(--color-texto-suave);
+  font-size: 0.9rem;
+}
+
+/* Grupos: tarjeta de equipo con sus grupos anidados ------------------------ */
+
+.tarjeta-equipo {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  box-shadow: var(--sombra-tarjeta);
+  padding: 1rem 1.25rem;
+  margin: 0 0 1rem;
+}
+
+.tarjeta-equipo.inactiva {
+  background: var(--color-fondo);
+  box-shadow: none;
+}
+
+.tarjeta-equipo-encabezado {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.tarjeta-equipo-titulo {
+  font-family: var(--fuente-titulo);
+  font-size: 1.05rem;
+  color: var(--color-acento-oscuro);
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.tarjeta-equipo-aviso {
+  font-size: 0.78rem;
+  color: var(--color-error);
+  margin: 0 0 0.6rem;
+}
+
+.grupos-del-equipo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.grupo-fila {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  background: var(--color-fondo);
+  font-size: 0.85rem;
+}
+
+.grupo-fila.inactivo {
+  color: var(--color-texto-suave);
+}
+
+/* Ajustes ------------------------------------------------------------------ */
+
+.lista-ajustes {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 42rem;
+}
+
+.ajuste-item {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  box-shadow: var(--sombra-tarjeta);
+  padding: 1rem 1.25rem;
+}
+
+.ajuste-item label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: var(--color-texto);
+  cursor: pointer;
+}
+
+.ajuste-item input[type='number'] {
+  font: inherit;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-borde);
+  width: 6rem;
+}
+
+.ajuste-explicacion {
+  margin: 0.5rem 0 0;
+  font-size: 0.83rem;
+  color: var(--color-texto-suave);
+}
+
+.ajuste-nota-snapshot {
+  max-width: 42rem;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+  background: #fdf8ef;
+  border-left: 3px solid var(--color-acento);
+  padding: 0.85rem 1rem;
+  border-radius: 0 var(--radio-borde) var(--radio-borde) 0;
+  margin: 0 0 1.5rem;
+}
+
+/* Grupo, papel y restricciones de una persona ------------------------------ */
+
+.etiqueta-grupo,
+.etiqueta-restriccion {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  white-space: nowrap;
+}
+
+.etiqueta-grupo {
+  color: var(--color-acento-oscuro);
+  background: #fdf8ef;
+  border: 1px solid var(--color-acento);
+}
+
+.etiqueta-restriccion {
+  color: var(--color-texto-suave);
+  background: var(--color-fondo);
+  border: 1px dashed var(--color-borde);
+}
+
+/* El editor ocupa la fila entera bajo el nombre y los botones. */
+.restricciones {
+  flex: 1 0 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--color-borde);
+}
+
+.restricciones-bloque h3 {
+  margin: 0 0 0.35rem;
+  font-family: var(--fuente-titulo);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.restricciones-ayuda,
+.restricciones-aviso {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+  max-width: 44rem;
+}
+
+.restricciones-aviso {
+  color: var(--color-error);
+}
+
+.restricciones-fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.restricciones-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.1rem;
+  margin-top: 0.35rem;
+}
+
+.restricciones-casilla {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.restricciones-opciones[aria-disabled='true'] {
+  opacity: 0.55;
+}
+
+.restricciones-dia::first-letter {
+  text-transform: uppercase;
+}
+
+.ajuste-subtitulo {
+  margin: 0 0 0.5rem;
+  font-family: var(--fuente-titulo);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.campo-catalogo-checkboxes legend {
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+  padding: 0;
+}

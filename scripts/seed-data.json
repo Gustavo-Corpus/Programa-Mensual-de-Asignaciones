@@ -1,0 +1,144 @@
+{
+  "_comentario": [
+    "Datos iniciales extraídos de la hoja de referencia de AGOSTO.",
+    "Los identificadores (p01.., g1.., t1..) son los IDs de documento en Firestore: fijos y estables,",
+    "para que volver a ejecutar la semilla sea idempotente y no duplique nada.",
+    "Nota sobre el programa histórico: la hoja original NO incluye el sábado 1 de agosto, aunque ese día",
+    "cae en sábado. Se reproduce tal cual, sin inventar asignaciones. Un programa guardado se muestra",
+    "siempre tal y como se guardó; las fechas solo se derivan del calendario al GENERAR un mes nuevo.",
+    "Regla de capitanes: viene preconfigurada pero APAGADA. La hoja de referencia no dice quién es",
+    "capitán o auxiliar de cada grupo, y la regla no significa nada hasta que alguien lo diga: se",
+    "asigna grupo y papel a cada persona en la pantalla de Personas y luego se enciende en Ajustes.",
+    "Por eso todas las personas nacen con groupId null, role MEMBER y sin restricciones."
+  ],
+
+  "assignmentTypes": [
+    { "id": "t1", "key": "acomodador_entrada",   "label": "Acomodador de entrada",   "kind": "PERSON", "daysOfWeek": [1, 6], "slotsPerDate": 1, "order": 1, "icon": "person",      "active": true },
+    { "id": "t2", "key": "acomodador_auditorio", "label": "Acomodador de auditorio", "kind": "PERSON", "daysOfWeek": [1, 6], "slotsPerDate": 1, "order": 2, "icon": "person",      "active": true },
+    { "id": "t3", "key": "pasillo_izquierdo",    "label": "Pasillo izquierdo",       "kind": "PERSON", "daysOfWeek": [1, 6], "slotsPerDate": 1, "order": 3, "icon": "arrow-left",  "active": true },
+    { "id": "t4", "key": "pasillo_derecho",      "label": "Pasillo derecho",         "kind": "PERSON", "daysOfWeek": [1, 6], "slotsPerDate": 1, "order": 4, "icon": "arrow-right", "active": true },
+    { "id": "t5", "key": "aseo",                 "label": "Aseo",                    "kind": "GROUP",  "daysOfWeek": [1, 6], "slotsPerDate": 1, "order": 5, "icon": "broom",       "active": true },
+    { "id": "t6", "key": "hospitalidad",         "label": "Hospitalidad",            "kind": "GROUP",  "daysOfWeek": [6],    "slotsPerDate": 1, "order": 6, "icon": "hands-heart", "active": true }
+  ],
+
+  "people": [
+    { "id": "p01", "name": "Hugo Jiménez",        "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p02", "name": "Miguel Bandala",      "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p03", "name": "Norberto Cerecedo",   "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p04", "name": "Ivan Quero",          "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p05", "name": "Gustavo Corpus",      "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p06", "name": "Constantino Castillo","active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p07", "name": "Armando Martínez",    "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p08", "name": "Edy Hernández",       "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p09", "name": "Edgar Ramos",         "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p10", "name": "Natán Gómez",         "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p11", "name": "Adiel Vargas",        "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p12", "name": "Emmanuel Priego",     "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p13", "name": "Ernesto Llanos",      "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p14", "name": "Carlos González",     "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p15", "name": "Arturo Parra",        "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p16", "name": "Jose M. García",      "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p17", "name": "Gaspar Rosado",       "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p18", "name": "Heber Rosado",        "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] },
+    { "id": "p19", "name": "Luis M. Priego",      "active": true, "groupId": null, "role": "MEMBER", "allowedTypeKeys": null, "blockedDaysOfWeek": [] }
+  ],
+
+  "teams": [
+    { "id": "e1", "displayName": null, "order": 1, "active": true },
+    { "id": "e2", "displayName": null, "order": 2, "active": true },
+    { "id": "e3", "displayName": null, "order": 3, "active": true },
+    { "id": "e4", "displayName": null, "order": 4, "active": true }
+  ],
+
+  "groups": [
+    { "id": "g1", "name": "1", "teamId": "e1", "order": 1, "active": true },
+    { "id": "g5", "name": "5", "teamId": "e1", "order": 2, "active": true },
+    { "id": "g2", "name": "2", "teamId": "e2", "order": 1, "active": true },
+    { "id": "g6", "name": "6", "teamId": "e2", "order": 2, "active": true },
+    { "id": "g3", "name": "3", "teamId": "e3", "order": 1, "active": true },
+    { "id": "g7", "name": "7", "teamId": "e3", "order": 2, "active": true },
+    { "id": "g4", "name": "4", "teamId": "e4", "order": 1, "active": true },
+    { "id": "g8", "name": "8", "teamId": "e4", "order": 2, "active": true }
+  ],
+
+  "settings": {
+    "historyWindowMonths": 6,
+    "allowMultiplePerDay": false,
+    "allowTeamTwiceSameDate": false,
+    "runRepairPass": true,
+    "maxRepairIterations": 200,
+    "captainRule": {
+      "enabled": false,
+      "sourceTypeKey": "aseo",
+      "targetTypeKeys": ["acomodador_entrada", "acomodador_auditorio"]
+    }
+  },
+
+  "historicalProgram": {
+    "id": "2026-08",
+    "year": 2026,
+    "month": 8,
+    "status": "PUBLISHED",
+    "seed": 20260801,
+    "rows": [
+      {
+        "date": "2026-08-03", "dayOfWeek": 1,
+        "people": { "acomodador_entrada": "p01", "acomodador_auditorio": "p02", "pasillo_izquierdo": "p03", "pasillo_derecho": "p04" },
+        "teams": { "aseo": "e4" }
+      },
+      {
+        "date": "2026-08-08", "dayOfWeek": 6,
+        "people": { "acomodador_entrada": "p05", "acomodador_auditorio": "p06", "pasillo_izquierdo": "p07", "pasillo_derecho": "p08" },
+        "teams": { "aseo": "e1", "hospitalidad": "e2" }
+      },
+      {
+        "date": "2026-08-10", "dayOfWeek": 1,
+        "people": { "acomodador_entrada": "p09", "acomodador_auditorio": "p10", "pasillo_izquierdo": "p11", "pasillo_derecho": "p12" },
+        "teams": { "aseo": "e2" }
+      },
+      {
+        "date": "2026-08-15", "dayOfWeek": 6,
+        "people": { "acomodador_entrada": "p13", "acomodador_auditorio": "p14", "pasillo_izquierdo": "p15", "pasillo_derecho": "p16" },
+        "teams": { "aseo": "e3", "hospitalidad": "e4" }
+      },
+      {
+        "date": "2026-08-17", "dayOfWeek": 1,
+        "people": { "acomodador_entrada": "p02", "acomodador_auditorio": "p17", "pasillo_izquierdo": "p18", "pasillo_derecho": "p03" },
+        "teams": { "aseo": "e4" }
+      },
+      {
+        "date": "2026-08-22", "dayOfWeek": 6,
+        "people": { "acomodador_entrada": "p16", "acomodador_auditorio": "p06", "pasillo_izquierdo": "p08", "pasillo_derecho": "p04" },
+        "teams": { "aseo": "e1", "hospitalidad": "e3" }
+      },
+      {
+        "date": "2026-08-24", "dayOfWeek": 1,
+        "people": { "acomodador_entrada": "p10", "acomodador_auditorio": "p19", "pasillo_izquierdo": "p12", "pasillo_derecho": "p07" },
+        "teams": { "aseo": "e2" }
+      },
+      {
+        "date": "2026-08-29", "dayOfWeek": 6,
+        "people": { "acomodador_entrada": "p15", "acomodador_auditorio": "p11", "pasillo_izquierdo": "p05", "pasillo_derecho": "p18" },
+        "teams": { "aseo": "e3", "hospitalidad": "e1" }
+      },
+      {
+        "date": "2026-08-31", "dayOfWeek": 1,
+        "people": { "acomodador_entrada": "p17", "acomodador_auditorio": "p01", "pasillo_izquierdo": "p14", "pasillo_derecho": "p09" },
+        "teams": { "aseo": "e4" }
+      }
+    ]
+  },
+
+  "_verificacion": {
+    "comentario": "Cifras comprobadas contra la hoja de referencia. El script de semilla DEBE afirmarlas al terminar y fallar si no cuadran.",
+    "fechas": 9,
+    "casillasDePersona": 36,
+    "casillasDeEquipo": 13,
+    "personas": 19,
+    "equipos": 4,
+    "grupos": 8,
+    "emparejamiento": "e1 = grupos 1 y 5 · e2 = 2 y 6 · e3 = 3 y 7 · e4 = 4 y 8 (parejas fijas, confirmadas)",
+    "repartoEsperadoPersonas": "base=1, resto=17, cap=2 → 17 personas con 2 y 2 personas con 1 (Ernesto Llanos y Luis M. Priego)",
+    "repartoEsperadoEquipos": "base=3, resto=1, cap=4 → e4 con 4 asignaciones; e1, e2 y e3 con 3"
+  }
+}
