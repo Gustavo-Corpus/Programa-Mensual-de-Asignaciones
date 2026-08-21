@@ -56,9 +56,4 @@ export interface ProgramPdfModel {
   /** Número de columnas variable: el documento no asume una cantidad fija. */
   readonly columns: readonly PdfColumn[];
   readonly weeks: readonly PdfWeekCard[];
-  readonly footer: {
-    readonly line1: string;
-    readonly line2Plain: string;
-    readonly line2Bold: string;
-  };
 }

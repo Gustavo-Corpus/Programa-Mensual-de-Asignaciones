@@ -69,3 +69,11 @@ export const TEAM_COST_LABELS: readonly string[] = [
   'Veces en el historial',
   'Desempate',
 ];
+
+/**
+ * Ventana de variedad de equipos, en el mismo orden que `teamCost` y con el
+ * mismo criterio que la de personas (ver `PERSON_COST_TOLERANCE`): holgura
+ * solo en el componente de fecha, cero en los de conteo. El desempate final
+ * no entra.
+ */
+export const TEAM_COST_TOLERANCE: readonly number[] = [0, 0, 30, 0];

@@ -221,3 +221,21 @@ export async function updateProgramDates(
     updatedAt: Timestamp.fromMillis(Date.now()),
   });
 }
+
+/**
+ * Borra un mes por completo: el documento agregado y su traza. Es la vuelta
+ * atrás de `saveProgram`, para empezar el mes de cero.
+ *
+ * No es un borrado en dos pasos que pueda quedarse a medias de forma
+ * peligrosa: si el lote falla, no se borra nada. Y borrar la traza es
+ * obligatorio, porque Firestore no borra en cascada las subcolecciones y una
+ * traza huérfana haría que el «¿Por qué?» de un mes nuevo explicara
+ * decisiones del mes viejo.
+ */
+export async function deleteProgram(year: number, month: number): Promise<void> {
+  const id = monthKey(year, month);
+  const batch = writeBatch(db);
+  batch.delete(doc(db, COLLECTION, id, 'meta', 'trace'));
+  batch.delete(doc(db, COLLECTION, id));
+  await batch.commit();
+}

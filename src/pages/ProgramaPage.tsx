@@ -8,6 +8,7 @@ import { RejillaPrograma } from '@/components/RejillaPrograma';
 import { PanelReparto } from '@/components/PanelReparto';
 import {
   alternarBloqueo,
+  borrarPrograma,
   cargarMes,
   cargarTraza,
   crearMesVacio,
@@ -92,7 +93,14 @@ export function ProgramaPage() {
       ejecutar(async () => {
         if (estado.fase !== 'listo') return;
         const seed = nuevaVariante ? estado.seed + 1 : estado.seed;
-        const resultado = await generarMes(year, month, { seed, catalogo: estado.catalogo });
+        const resultado = await generarMes(year, month, {
+          seed,
+          catalogo: estado.catalogo,
+          // "Otra variante" tiene que dar otra variante de verdad, no solo
+          // otra semilla: el servicio sigue probando hasta que el reparto
+          // cambia. Ver `OpcionesGeneracion` en programService.
+          distintaDeLaGuardada: nuevaVariante,
+        });
         // Se guarda de inmediato: así el candado, la edición y el «¿Por qué?»
         // trabajan siempre sobre un programa persistido, y no hay dos verdades
         // (una en pantalla y otra en la base) que puedan divergir.
@@ -153,6 +161,25 @@ export function ProgramaPage() {
         setEstado({ ...estado, programa: actualizado });
       }),
     [ejecutar, estado],
+  );
+
+  /**
+   * Borrar es la salida de emergencia cuando el mes ha quedado inservible:
+   * deja de existir y se vuelve a empezar. Por eso pide confirmación diciendo
+   * exactamente qué se pierde, y no se ofrece si el mes no está guardado.
+   */
+  const borrar = useCallback(
+    () =>
+      void ejecutar(async () => {
+        if (estado.fase !== 'listo' || estado.programa === null) return;
+        const aviso =
+          `Se borrará el programa de ${MONTH_NAMES_ES[month - 1] ?? ''} de ${year} por completo: casillas, bloqueos y ` +
+          'explicaciones. Este mes dejará de contar como historial. ¿Continuar?';
+        if (!window.confirm(aviso)) return;
+        await borrarPrograma(year, month);
+        await cargar();
+      }),
+    [ejecutar, estado, year, month, cargar],
   );
 
   const pedirTraza = useCallback(() => {
@@ -269,6 +296,11 @@ export function ProgramaPage() {
         >
           Descargar PDF
         </button>
+        {hayPrograma && (
+          <button type="button" className="boton-peligro" disabled={ocupado} onClick={borrar}>
+            Borrar programa
+          </button>
+        )}
       </div>
 
       {hayPrograma && (

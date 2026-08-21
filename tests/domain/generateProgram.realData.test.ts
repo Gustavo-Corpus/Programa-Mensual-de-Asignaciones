@@ -262,3 +262,103 @@ describe('generateProgram con los datos reales de la hoja', () => {
     ).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Variantes
+//
+// Regresión del fallo real: con los datos de la hoja, pedir "otra variante"
+// devolvía una y otra vez el mismo septiembre. La semilla solo interviene en
+// el componente de desempate, y sin empates ese componente no se consulta
+// nunca. Estas pruebas fijan las dos mitades del arreglo: que las variantes
+// cambien de verdad, y que cambien SIN estropear el reparto.
+// ---------------------------------------------------------------------------
+
+/** Quién ocupa cada casilla, en texto comparable. */
+function firma(salida: ReturnType<typeof generateProgram>): string {
+  return salida.assignments
+    .map((a) => `${a.date}|${a.typeKey}|${a.slotIndex}=${a.personId ?? a.teamId ?? ''}`)
+    .sort()
+    .join('\n');
+}
+
+const SEMILLAS = [20260901, 20260902, 20260903, 20260904, 20260905, 20260906];
+
+describe('variantes del mismo mes con los datos reales', () => {
+  const variantes = SEMILLAS.map((seed) => generateProgram({ ...input, seed }));
+
+  it('cada semilla da un reparto distinto', () => {
+    const firmas = variantes.map(firma);
+    expect(new Set(firmas).size).toBe(SEMILLAS.length);
+  });
+
+  it('la misma semilla sigue dando exactamente el mismo reparto', () => {
+    for (const seed of SEMILLAS) {
+      expect(firma(generateProgram({ ...input, seed }))).toBe(
+        firma(generateProgram({ ...input, seed })),
+      );
+    }
+  });
+
+  it('los equipos de aseo y hospitalidad también cambian entre variantes', () => {
+    // Antes del arreglo estas dos columnas eran idénticas en todas las
+    // variantes: con solo 4 equipos, sus contadores nunca empataban al día.
+    const firmasEquipo = variantes.map((v) =>
+      v.assignments
+        .filter((a) => a.kind === 'GROUP')
+        .map((a) => `${a.date}|${a.typeKey}=${a.teamId ?? ''}`)
+        .sort()
+        .join('\n'),
+    );
+    expect(new Set(firmasEquipo).size).toBeGreaterThan(1);
+  });
+
+  it('ninguna variante rompe el equilibrio ni el tope del mes', () => {
+    for (const [i, v] of variantes.entries()) {
+      const conteo = new Map<string, number>();
+      for (const a of v.assignments) {
+        if (a.personId === null) continue;
+        conteo.set(a.personId, (conteo.get(a.personId) ?? 0) + 1);
+      }
+      const veces = [...conteo.values()];
+      expect(Math.max(...veces), `semilla ${SEMILLAS[i]}`).toBe(v.stats.personTarget.cap);
+      expect(Math.min(...veces), `semilla ${SEMILLAS[i]}`).toBe(v.stats.personTarget.base);
+      expect(v.assignments.filter((a) => a.unfilledReason !== null)).toEqual([]);
+      expect(v.warnings).toEqual([]);
+    }
+  });
+
+  it('ninguna variante pone a nadie dos veces el mismo día', () => {
+    for (const v of variantes) {
+      const porFecha = new Map<string, string[]>();
+      for (const a of v.assignments) {
+        if (a.personId === null) continue;
+        const lista = porFecha.get(a.date) ?? [];
+        lista.push(a.personId);
+        porFecha.set(a.date, lista);
+      }
+      for (const [fecha, ids] of porFecha) {
+        expect(new Set(ids).size, `día ${fecha}`).toBe(ids.length);
+      }
+    }
+  });
+
+  it('ninguna variante junta dos asignaciones de la misma persona en la misma semana', () => {
+    for (const [i, v] of variantes.entries()) {
+      const fechasPor = new Map<string, string[]>();
+      for (const a of v.assignments) {
+        if (a.personId === null) continue;
+        const lista = fechasPor.get(a.personId) ?? [];
+        lista.push(a.date);
+        fechasPor.set(a.personId, lista);
+      }
+      for (const [personId, fechas] of fechasPor) {
+        const ordenadas = [...fechas].sort();
+        for (let j = 1; j < ordenadas.length; j++) {
+          const dias =
+            (Date.parse(ordenadas[j]!) - Date.parse(ordenadas[j - 1]!)) / 86_400_000;
+          expect(dias, `${personId}, semilla ${SEMILLAS[i]}`).toBeGreaterThan(3);
+        }
+      }
+    }
+  });
+});

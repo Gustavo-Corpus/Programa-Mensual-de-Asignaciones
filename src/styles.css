@@ -286,6 +286,20 @@ input {
   color: #fff !important;
 }
 
+/* Borrar el mes entero. Se separa del resto y va en rojo lleno porque es la
+   única acción de esta barra que no se puede deshacer. */
+.boton-peligro {
+  margin-left: auto;
+  background: var(--color-error-fondo) !important;
+  border-color: var(--color-error) !important;
+  color: var(--color-error) !important;
+}
+
+.boton-peligro:hover:not(:disabled) {
+  background: var(--color-error) !important;
+  color: #fff !important;
+}
+
 .avisos {
   list-style: none;
   margin: 0 0 1.5rem;

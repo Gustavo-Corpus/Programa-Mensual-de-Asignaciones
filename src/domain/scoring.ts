@@ -126,3 +126,81 @@ export const PERSON_COST_LABELS: readonly string[] = [
   'Días desde su última asignación',
   'Desempate',
 ];
+
+// ---------------------------------------------------------------------------
+// Ventana de variedad
+// ---------------------------------------------------------------------------
+
+/**
+ * Cuánto puede empeorar cada componente respecto al mejor candidato sin dejar
+ * de considerarse "igual de bueno". Mismo orden que `personCost`; el último
+ * componente (el desempate) NO entra, porque es justo el que decide dentro de
+ * la ventana.
+ *
+ * Los tres componentes de CONTEO van a cero y no se negocian: son el equilibrio
+ * del mes, la rotación de responsabilidad y la equidad histórica, es decir,
+ * todo lo que `CLAUDE.md` pide garantizar. Los dos componentes de FECHA sí
+ * llevan holgura, porque su precisión es falsa: que alguien sirviera hace 12
+ * días y otro hace 19 no es una razón de negocio para elegir siempre al mismo,
+ * pero comparados al día exacto casi nunca empatan, y sin empates el desempate
+ * por semilla no llega a usarse nunca. De ahí venía que "probar otra variante"
+ * devolviera una y otra vez el mismo programa.
+ *
+ * Los valores son los tamaños naturales del problema: una semana para el
+ * espaciado (las fechas del programa son lunes y sábados) y un mes para la
+ * antigüedad en la responsabilidad.
+ */
+export const PERSON_COST_TOLERANCE: readonly number[] = [0, 0, 30, 0, 7];
+
+/**
+ * Reordena los candidatos YA ORDENADOS por `compareCandidates` de forma que
+ * delante queden los que están dentro de la ventana de variedad del mejor,
+ * barajados por su componente de desempate (que depende de la semilla), y
+ * detrás el resto en su orden original.
+ *
+ * El resultado sigue siendo una función pura y determinista: misma entrada y
+ * misma semilla, mismo orden. Lo que cambia es que ahora la semilla decide de
+ * verdad entre candidatos empatados en lo que importa.
+ */
+export function orderByVariety<T extends { readonly id: string; readonly cost: CostTuple }>(
+  sorted: readonly T[],
+  tolerance: readonly number[]
+): T[] {
+  const best = sorted[0];
+  if (best === undefined) return [];
+
+  const dentro: T[] = [];
+  const fuera: T[] = [];
+  for (const candidate of sorted) {
+    (withinTolerance(best.cost, candidate.cost, tolerance) ? dentro : fuera).push(candidate);
+  }
+
+  dentro.sort(compareTiebreakers);
+  return [...dentro, ...fuera];
+}
+
+/** ¿`cost` es tan bueno como `best` en todo lo que no es el desempate? */
+function withinTolerance(
+  best: CostTuple,
+  cost: CostTuple,
+  tolerance: readonly number[]
+): boolean {
+  for (let i = 0; i < tolerance.length; i++) {
+    const margin = tolerance[i] ?? 0;
+    if ((cost[i] ?? 0) - (best[i] ?? 0) > margin) return false;
+  }
+  return true;
+}
+
+/** Solo el último componente (el hash de la semilla) y, si empata, el `id`. */
+function compareTiebreakers(
+  a: { readonly id: string; readonly cost: CostTuple },
+  b: { readonly id: string; readonly cost: CostTuple }
+): number {
+  const av = a.cost[a.cost.length - 1] ?? 0;
+  const bv = b.cost[b.cost.length - 1] ?? 0;
+  if (av !== bv) return av - bv;
+  if (a.id < b.id) return -1;
+  if (a.id > b.id) return 1;
+  return 0;
+}

@@ -1,4 +1,5 @@
-import type { ProgramPdfModel, PdfWeekCard, PdfCell } from './model';
+import type { ProgramPdfModel, PdfWeekCard, PdfDateRow, PdfCell } from './model';
+import { groupIntoCards } from './buildPdfModel';
 
 /**
  * Datos de prueba construidos a mano a partir de `scripts/seed-data.json`
@@ -7,6 +8,12 @@ import type { ProgramPdfModel, PdfWeekCard, PdfCell } from './model';
  * programáticamente: los valores están transcritos literalmente para que
  * este módulo siga siendo "a mano", como pide la especificación, y para no
  * acoplar `src/pdf/` a la forma de `scripts/`.
+ *
+ * Lo único que NO se transcribe a mano es el reparto de las fechas en tarjetas:
+ * de eso manda `groupIntoCards`. Copiarlo aquí solo serviría para que los
+ * fixtures pudieran quedarse desfasados respecto al documento real sin que
+ * nadie se enterase; el reparto tiene sus propias pruebas en
+ * `tests/pdf/buildPdfModel.test.ts`.
  */
 
 const line = (...lines: string[]): PdfCell => ({ lines });
@@ -172,16 +179,14 @@ const WEEKS: readonly PdfWeekCard[] = [
   },
 ];
 
+/** Las fechas de la hoja de referencia, en orden y sin agrupar. */
+const ROWS: readonly PdfDateRow[] = WEEKS.flatMap((card) => card.rows);
+
 export const programaPdfModel: ProgramPdfModel = {
   title: 'AGOSTO',
   subtitle: 'ASIGNACIONES DE SERVICIO',
   columns: COLUMNS,
-  weeks: WEEKS,
-  footer: {
-    line1: 'Gracias por su servicio y dedicación.',
-    line2Plain: 'Cada asignación ',
-    line2Bold: 'hace la diferencia.',
-  },
+  weeks: groupIntoCards(ROWS),
 };
 
 /**
@@ -192,8 +197,9 @@ export const programaPdfModel: ProgramPdfModel = {
  */
 function buildProgramaPdfModelLargo(): ProgramPdfModel {
   const weeksLargo: PdfWeekCard[] = [];
+  const base = programaPdfModel.weeks;
   for (let i = 0; i < 12; i += 1) {
-    const source = WEEKS[i % WEEKS.length];
+    const source = base[i % base.length];
     if (!source) continue;
     weeksLargo.push({
       rows: source.rows.map((row) => ({ ...row, date: `${row.date}#${i}` })),
@@ -208,34 +214,30 @@ export const programaPdfModelLargo: ProgramPdfModel = buildProgramaPdfModelLargo
  * EL CASO PEOR REAL, y el que fija las alturas de `theme.ts`.
  *
  * La hoja de referencia tiene 9 fechas porque omite el sábado 1. Pero un mes de
- * 31 días que empieza en sábado tiene 5 sábados y 5 lunes = 10 fechas, y al
- * agruparlas por semana ISO salen 6 tarjetas (la primera y la última con una
- * sola fila). Agosto de 2026 es exactamente ese mes.
+ * 31 días que empieza en sábado tiene 5 sábados y 5 lunes = 10 fechas, que se
+ * reparten en 5 tarjetas completas de dos filas. Agosto de 2026 es exactamente
+ * ese mes, y es el que más filas mete en una sola página.
  *
  * Este es el modelo que tiene que caber en una sola página. Si deja de caber,
  * el programa se parte en dos hojas y hay que reimprimir: no es un detalle
  * estético.
  */
 function buildProgramaPdfModelMesCompleto(): ProgramPdfModel {
-  const sabado1: PdfWeekCard = {
-    rows: [
-      {
-        date: '2026-08-01',
-        dayName: 'SÁBADO',
-        dayNumber: '01',
-        monthLabel: MONTH_LABEL,
-        cells: [
-          line('Ernesto', 'Llanos'),
-          line('Luis M.', 'Priego'),
-          line('Gaspar', 'Rosado'),
-          line('Heber', 'Rosado'),
-          line('Grupos', '3 y 7'),
-          line('Grupos', '2 y 6'),
-        ],
-      },
+  const sabado1: PdfDateRow = {
+    date: '2026-08-01',
+    dayName: 'SÁBADO',
+    dayNumber: '01',
+    monthLabel: MONTH_LABEL,
+    cells: [
+      line('Ernesto', 'Llanos'),
+      line('Luis M.', 'Priego'),
+      line('Gaspar', 'Rosado'),
+      line('Heber', 'Rosado'),
+      line('Grupos', '3 y 7'),
+      line('Grupos', '2 y 6'),
     ],
   };
-  return { ...programaPdfModel, weeks: [sabado1, ...WEEKS] };
+  return { ...programaPdfModel, weeks: groupIntoCards([sabado1, ...ROWS]) };
 }
 
 export const programaPdfModelMesCompleto: ProgramPdfModel = buildProgramaPdfModelMesCompleto();

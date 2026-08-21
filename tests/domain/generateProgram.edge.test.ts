@@ -928,6 +928,57 @@ describe('regla de capitanes — el equipo que limpia pone también entrada y au
     }
   });
 
+  // El flujo real del administrador: el mes ya está generado, cambia A MANO el
+  // equipo que limpia un día (lo que además bloquea esa casilla) y pide otra
+  // variante. Los acomodadores de ese día tienen que salir del equipo NUEVO,
+  // no del que había elegido el algoritmo.
+  it('si el equipo de aseo se fija a mano, la reserva del día es la de ESE equipo', () => {
+    const groups = gruposEmparejados();
+    const base = {
+      ...SEPTIEMBRE,
+      people: plantilla(),
+      teams: equipos(),
+      groups,
+      settings: makeSettings({ captainRule: REGLA }),
+    };
+
+    const sinTocar = generateProgram(makeInput(base));
+    const fecha = sinTocar.dates[0]!.date;
+    const equipoOriginal = sinTocar.assignments.find(
+      (a) => a.date === fecha && a.typeKey === 'aseo',
+    )?.teamId;
+
+    // Se elige a mano un equipo DISTINTO del que salió.
+    const equipoNuevo = equipos().find((t) => t.id !== equipoOriginal)!.id;
+
+    const conMano = generateProgram(
+      makeInput({
+        ...base,
+        lockedAssignments: [
+          { date: fecha, typeKey: 'aseo', slotIndex: 0, personId: null, teamId: equipoNuevo },
+        ],
+      }),
+    );
+
+    expect(
+      conMano.assignments.find((a) => a.date === fecha && a.typeKey === 'aseo')?.teamId,
+    ).toBe(equipoNuevo);
+
+    const gruposDelNuevo = new Set(groups.filter((g) => g.teamId === equipoNuevo).map((g) => g.id));
+    const reservaNueva = new Set(
+      plantilla()
+        .filter((p) => p.groupId !== null && gruposDelNuevo.has(p.groupId))
+        .filter((p) => p.role === 'CAPTAIN' || p.role === 'ASSISTANT')
+        .map((p) => p.id),
+    );
+
+    for (const typeKey of ['acomodador_entrada', 'acomodador_auditorio']) {
+      const casilla = conMano.assignments.find((a) => a.date === fecha && a.typeKey === typeKey);
+      expect(casilla?.personId, `${typeKey} el ${fecha}`).not.toBeNull();
+      expect(reservaNueva.has(casilla?.personId ?? ''), `${typeKey} el ${fecha}`).toBe(true);
+    }
+  });
+
   it('los pasillos siguen abiertos a todos: la regla solo gobierna sus dos responsabilidades', () => {
     const groups = gruposEmparejados();
     const input = makeInput({

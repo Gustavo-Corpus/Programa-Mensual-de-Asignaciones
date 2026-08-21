@@ -1,13 +1,19 @@
 // React 19 dejó de exponer el namespace JSX global: hay que importarlo.
 import type { JSX } from 'react';
-import { Document, Page, View, Text, Svg, Path, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import type { ProgramPdfModel, PdfColumn, PdfWeekCard, PdfDateRow, PdfCell } from './model';
+import { computeLayout, type PdfLayout } from './layout';
 import { Icon } from './icons';
 import { registerFonts, FONT_SERIF, FONT_SANS, WEIGHT_SEMIBOLD } from './fonts';
-import { COLORS, SUBTITLE_COLOR, ONDA_FONDO_OPACIDAD, PAGE, HEADER, COLUMNS_HEADER, WEEK_CARD, FOOTER } from './theme';
+import { COLORS, SUBTITLE_COLOR, PAGE, HEADER, COLUMNS_HEADER, WEEK_CARD } from './theme';
 
 registerFonts();
 
+/**
+ * Estilos que NO dependen del número de fechas del mes. Los que sí dependen
+ * —todo lo que tiene que ver con el alto de fila y el cuerpo de los nombres—
+ * se construyen por documento en `createLayoutStyles`.
+ */
 const styles = StyleSheet.create({
   page: {
     backgroundColor: COLORS.fondoPagina,
@@ -17,24 +23,19 @@ const styles = StyleSheet.create({
     paddingRight: PAGE.marginRight,
     fontFamily: FONT_SANS,
   },
-  backgroundWave: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-  },
 
-  // Cabecera del título. El "alto ~96pt" de la especificación es una
-  // medida aproximada de referencia, no una altura mínima forzada: con 9
-  // fechas (5 tarjetas) el documento ya llena casi toda la página, y
-  // forzar 96pt exactos lo hace desbordar a una segunda página. Se deja
-  // que el bloque tome su alto natural (título + adorno + subtítulo).
+  // Cabecera del título. Alto fijo y declarado: es el primer sumando del
+  // presupuesto vertical que `layout.ts` reparte entre las filas, así que no
+  // puede depender de las métricas de la fuente.
   header: {
+    height: HEADER.height,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     fontFamily: FONT_SERIF,
     fontSize: HEADER.titleFontSize,
+    lineHeight: HEADER.titleLineHeight,
     letterSpacing: HEADER.titleLetterSpacing,
     color: COLORS.textoTitulo,
     textAlign: 'center',
@@ -44,7 +45,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
+    marginTop: HEADER.ornamentMarginTop,
   },
   ornamentLine: {
     width: HEADER.ornamentLineWidth,
@@ -62,6 +63,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: FONT_SANS,
     fontSize: HEADER.subtitleFontSize,
+    lineHeight: HEADER.subtitleLineHeight,
     letterSpacing: HEADER.subtitleLetterSpacing,
     color: SUBTITLE_COLOR,
     textAlign: 'center',
@@ -78,6 +80,8 @@ const styles = StyleSheet.create({
     paddingVertical: COLUMNS_HEADER.paddingVertical,
     borderRadius: COLUMNS_HEADER.borderRadius,
     backgroundColor: COLORS.cabeceraBeige,
+    borderWidth: WEEK_CARD.borderWidth,
+    borderColor: COLORS.bordeTarjeta,
     flexDirection: 'row',
     overflow: 'hidden',
   },
@@ -98,7 +102,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 2,
+    paddingHorizontal: COLUMNS_HEADER.labelPaddingHorizontal,
   },
   columnsHeaderSeparator: {
     width: 0,
@@ -111,11 +115,12 @@ const styles = StyleSheet.create({
   columnsHeaderLabel: {
     fontFamily: FONT_SANS,
     fontSize: COLUMNS_HEADER.labelFontSize,
+    lineHeight: COLUMNS_HEADER.labelLineHeight,
     letterSpacing: COLUMNS_HEADER.labelLetterSpacing,
     color: COLORS.textoEtiqueta,
     textAlign: 'center',
     textTransform: 'uppercase',
-    marginTop: 4,
+    marginTop: COLUMNS_HEADER.labelMarginTop,
   },
 
   // Tarjetas de semana
@@ -134,7 +139,7 @@ const styles = StyleSheet.create({
   },
   weekCard: {
     flexDirection: 'row',
-    backgroundColor: COLORS.tarjetaBlanca,
+    backgroundColor: COLORS.tarjeta,
     borderRadius: WEEK_CARD.borderRadius,
     borderWidth: WEEK_CARD.borderWidth,
     borderColor: COLORS.bordeTarjeta,
@@ -150,138 +155,90 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.columnaFecha,
     position: 'relative',
   },
-  dateCell: {
-    height: WEEK_CARD.rowHeight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   dayName: {
     fontFamily: FONT_SANS,
-    fontSize: WEEK_CARD.dayNameFontSize,
     letterSpacing: WEEK_CARD.dayNameLetterSpacing,
-    color: COLORS.textoDiaSemana,
+    color: COLORS.textoFecha,
     textAlign: 'center',
     textTransform: 'uppercase',
   },
+  // Montserrat y no Cormorant: ver la nota de DATE_COLUMN_FONT en theme.ts.
+  // Cormorant escribiría "IO" donde tiene que poner "10".
   dayNumber: {
-    fontFamily: FONT_SERIF,
-    fontSize: WEEK_CARD.dayNumberFontSize,
+    fontFamily: FONT_SANS,
     color: COLORS.dorado,
     textAlign: 'center',
     marginTop: 1,
   },
   monthLabel: {
     fontFamily: FONT_SANS,
-    fontSize: WEEK_CARD.monthLabelFontSize,
-    color: COLORS.textoMesPeque,
+    color: COLORS.textoFecha,
     textAlign: 'center',
     textTransform: 'uppercase',
     marginTop: 1,
-  },
-  dateConnectorLine: {
-    position: 'absolute',
-    left: WEEK_CARD.dateColumnWidth / 2,
-    width: 0,
-    height: WEEK_CARD.connectorHeight,
-    borderLeftWidth: 1,
-    borderLeftStyle: 'dotted',
-    borderLeftColor: COLORS.punteado,
-  },
-  dateConnectorDot: {
-    position: 'absolute',
-    left: WEEK_CARD.dateColumnWidth / 2 - WEEK_CARD.connectorDotSize / 2,
-    width: WEEK_CARD.connectorDotSize,
-    height: WEEK_CARD.connectorDotSize,
-    borderRadius: WEEK_CARD.connectorDotSize / 2,
-    backgroundColor: COLORS.punteado,
   },
   assignmentZone: {
     flex: 1,
     flexDirection: 'column',
   },
-  assignmentRow: {
-    height: WEEK_CARD.rowHeight,
-    flexDirection: 'row',
-  },
+  // La ÚNICA separación entre las dos fechas de una tarjeta. Como no hay nada
+  // más que las separe, tiene que verse: va en un tono más oscuro que el
+  // punteado de la cabecera y no llega a la columna de fechas, igual que en la
+  // hoja de referencia.
   assignmentRowDivider: {
     borderTopWidth: 1,
     borderTopStyle: 'dotted',
-    borderTopColor: COLORS.punteado,
+    borderTopColor: COLORS.divisorFila,
   },
   assignmentCell: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  assignmentLine: {
-    fontFamily: FONT_SANS,
-    fontSize: WEEK_CARD.assignmentFontSize,
-    lineHeight: WEEK_CARD.assignmentLineHeight,
-    color: COLORS.textoNombre,
-    textAlign: 'center',
+    paddingHorizontal: WEEK_CARD.cellPaddingHorizontal,
+    paddingVertical: WEEK_CARD.cellPaddingVertical,
   },
   emptyMark: {
     fontFamily: FONT_SANS,
-    fontSize: WEEK_CARD.emptyMarkFontSize,
     color: COLORS.vacio,
-  },
-
-  // Pie
-  footer: {
-    marginTop: FOOTER.marginTop,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  footerCircle: {
-    width: FOOTER.circleDiameter,
-    height: FOOTER.circleDiameter,
-    borderRadius: FOOTER.circleDiameter / 2,
-    backgroundColor: COLORS.circuloPie,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  footerTextBlock: {
-    marginLeft: 8,
-  },
-  footerLine: {
-    fontFamily: FONT_SANS,
-    fontSize: FOOTER.textFontSize,
-    color: COLORS.textoEtiqueta,
-  },
-  footerLine2Bold: {
-    fontFamily: FONT_SANS,
-    fontWeight: WEIGHT_SEMIBOLD,
-    color: COLORS.dorado,
   },
 });
 
-/** Onda suave del fondo, arriba a la derecha. Sin hojas decorativas: es un gesto mínimo, no una ilustración. */
-function BackgroundWave(): JSX.Element {
-  const width = 260;
-  const height = 190;
-  return (
-    <View style={styles.backgroundWave} fixed>
-      <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-        <Path
-          d={`M${width * 0.25} 0
-              C ${width * 0.55} ${height * 0.12}, ${width * 0.7} ${height * 0.02}, ${width} ${height * 0.2}
-              L ${width} 0 Z`}
-          fill={COLORS.ondaFondo}
-          opacity={ONDA_FONDO_OPACIDAD}
-        />
-        <Path
-          d={`M${width * 0.45} 0
-              C ${width * 0.7} ${height * 0.22}, ${width * 0.8} ${height * 0.1}, ${width} ${height * 0.38}
-              L ${width} 0 Z`}
-          fill={COLORS.ondaFondo}
-          opacity={ONDA_FONDO_OPACIDAD * 0.6}
-        />
-      </Svg>
-    </View>
-  );
+/**
+ * Estilos que dependen de cuántas fechas tiene el mes.
+ *
+ * No pueden vivir en el `StyleSheet.create` de arriba porque el alto de fila y
+ * el cuerpo de los nombres se calculan por documento: son justo lo que hace
+ * que la hoja llene la página tanto con 8 fechas como con 10.
+ */
+function createLayoutStyles(layout: PdfLayout) {
+  return StyleSheet.create({
+    dateCell: {
+      height: layout.rowHeight,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    assignmentRow: {
+      height: layout.rowHeight,
+      flexDirection: 'row',
+    },
+    // Los nombres van en negrita y al mayor cuerpo que permita la casilla:
+    // esta hoja se lee colgada en un tablón, no en la mano.
+    assignmentLine: {
+      fontFamily: FONT_SANS,
+      fontWeight: WEIGHT_SEMIBOLD,
+      fontSize: layout.nameFontSize,
+      lineHeight: layout.nameLineHeight,
+      color: COLORS.textoNombre,
+      textAlign: 'center',
+    },
+    emptyMarkSized: { fontSize: layout.emptyMarkFontSize },
+    dayNameSized: { fontSize: layout.dayNameFontSize },
+    dayNumberSized: { fontSize: layout.dayNumberFontSize },
+    monthLabelSized: { fontSize: layout.monthLabelFontSize },
+  });
 }
+
+type LayoutStyles = ReturnType<typeof createLayoutStyles>;
 
 function Header({ model }: { model: ProgramPdfModel }): JSX.Element {
   return (
@@ -327,8 +284,9 @@ function ColumnsHeaderContent({ columns }: { columns: readonly PdfColumn[] }): J
  * Lo estuvo, y hacía que TODOS los iconos de la cabecera salieran como siluetas
  * negras macizas: dentro de esa llamada, `@react-pdf/renderer` pierde las props
  * de los componentes SVG anidados, así que `stroke` y `fill="none"` se ignoran y
- * cada figura cae al relleno negro por defecto. El icono del pie, que está fuera
- * del `render`, se dibujaba correctamente al mismo tiempo: esa era la pista.
+ * cada figura cae al relleno negro por defecto. El icono del pie, que estaba
+ * fuera del `render`, se dibujaba correctamente al mismo tiempo: esa era la
+ * pista.
  *
  * El motivo original para usar `render` era que la cabecera se recolocara al
  * principio de las páginas de continuación. Comprobado con `programaPdfModelLargo`
@@ -344,28 +302,28 @@ function ColumnsHeader({ columns }: { columns: readonly PdfColumn[] }): JSX.Elem
   );
 }
 
-function DateCell({ row }: { row: PdfDateRow }): JSX.Element {
+function DateCell({ row, ls }: { row: PdfDateRow; ls: LayoutStyles }): JSX.Element {
   return (
-    <View style={styles.dateCell}>
-      <Text style={styles.dayName}>{row.dayName}</Text>
-      <Text style={styles.dayNumber}>{row.dayNumber}</Text>
-      <Text style={styles.monthLabel}>{row.monthLabel}</Text>
+    <View style={ls.dateCell}>
+      <Text style={[styles.dayName, ls.dayNameSized]}>{row.dayName}</Text>
+      <Text style={[styles.dayNumber, ls.dayNumberSized]}>{row.dayNumber}</Text>
+      <Text style={[styles.monthLabel, ls.monthLabelSized]}>{row.monthLabel}</Text>
     </View>
   );
 }
 
-function AssignmentCell({ cell }: { cell: PdfCell }): JSX.Element {
+function AssignmentCell({ cell, ls }: { cell: PdfCell; ls: LayoutStyles }): JSX.Element {
   if (cell.lines.length === 0) {
     return (
       <View style={styles.assignmentCell}>
-        <Text style={styles.emptyMark}>—</Text>
+        <Text style={[styles.emptyMark, ls.emptyMarkSized]}>—</Text>
       </View>
     );
   }
   return (
     <View style={styles.assignmentCell}>
       {cell.lines.map((line, index) => (
-        <Text key={index} style={styles.assignmentLine}>
+        <Text key={index} style={ls.assignmentLine}>
           {line}
         </Text>
       ))}
@@ -373,8 +331,7 @@ function AssignmentCell({ cell }: { cell: PdfCell }): JSX.Element {
   );
 }
 
-function WeekCard({ card }: { card: PdfWeekCard }): JSX.Element {
-  const hasTwoRows = card.rows.length === 2;
+function WeekCard({ card, ls }: { card: PdfWeekCard; ls: LayoutStyles }): JSX.Element {
   return (
     <View style={styles.weekCardWrap} wrap={false}>
       <View style={styles.weekCardShadow} />
@@ -382,27 +339,22 @@ function WeekCard({ card }: { card: PdfWeekCard }): JSX.Element {
         <View style={styles.goldBar} />
         <View style={styles.dateColumn}>
           {card.rows.map((row) => (
-            <DateCell key={row.date} row={row} />
+            <DateCell key={row.date} row={row} ls={ls} />
           ))}
-          {hasTwoRows ? (
-            <>
-              <View style={[styles.dateConnectorDot, { top: WEEK_CARD.rowHeight - WEEK_CARD.connectorHeight / 2 - WEEK_CARD.connectorDotSize / 2 }]} />
-              <View style={[styles.dateConnectorLine, { top: WEEK_CARD.rowHeight - WEEK_CARD.connectorHeight / 2 }]} />
-              <View style={[styles.dateConnectorDot, { top: WEEK_CARD.rowHeight + WEEK_CARD.connectorHeight / 2 - WEEK_CARD.connectorDotSize / 2 }]} />
-            </>
-          ) : null}
         </View>
         <View style={styles.assignmentZone}>
           {card.rows.map((row, rowIndex) => (
             <View
               key={row.date}
-              style={rowIndex > 0 ? [styles.assignmentRow, styles.assignmentRowDivider] : styles.assignmentRow}
+              style={
+                rowIndex > 0 ? [ls.assignmentRow, styles.assignmentRowDivider] : ls.assignmentRow
+              }
             >
               {row.cells.map((cell, cellIndex) => (
                 // El índice de columna identifica la celda de forma estable
                 // dentro de la fila (el número de columnas es fijo por
                 // documento); `PdfCell` no trae un id propio.
-                <AssignmentCell key={cellIndex} cell={cell} />
+                <AssignmentCell key={cellIndex} cell={cell} ls={ls} />
               ))}
             </View>
           ))}
@@ -412,36 +364,19 @@ function WeekCard({ card }: { card: PdfWeekCard }): JSX.Element {
   );
 }
 
-function Footer({ model }: { model: ProgramPdfModel }): JSX.Element {
-  return (
-    <View style={styles.footer}>
-      <View style={styles.footerCircle}>
-        <Icon name="people" size={FOOTER.circleIconSize} color={COLORS.dorado} />
-      </View>
-      <View style={styles.footerTextBlock}>
-        <Text style={styles.footerLine}>{model.footer.line1}</Text>
-        <Text style={styles.footerLine}>
-          {model.footer.line2Plain}
-          <Text style={styles.footerLine2Bold}>{model.footer.line2Bold}</Text>
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 export function ProgramDocument({ model }: { model: ProgramPdfModel }): JSX.Element {
+  const layout = computeLayout(model);
+  const ls = createLayoutStyles(layout);
   return (
     <Document>
       <Page size="LETTER" orientation="portrait" style={styles.page} wrap>
-        <BackgroundWave />
         <Header model={model} />
         <ColumnsHeader columns={model.columns} />
         <View>
           {model.weeks.map((card, index) => (
-            <WeekCard key={index} card={card} />
+            <WeekCard key={index} card={card} ls={ls} />
           ))}
         </View>
-        <Footer model={model} />
       </Page>
     </Document>
   );

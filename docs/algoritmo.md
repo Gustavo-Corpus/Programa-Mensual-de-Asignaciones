@@ -251,6 +251,39 @@ tipos sería aparente, no real. `CLAUDE.md` pide explícitamente rotar tipos, no
 **Por qué la carga del mes va primero que todo lo demás.** El equilibrio del mes es lo que ve el
 usuario y lo que pide `CLAUDE.md` como prioridad; el historial ajusta, no manda.
 
+### Ventana de variedad (por qué la semilla cambia algo)
+
+Ordenar por la tupla y quedarse con el primero tiene un problema práctico que se ve al pedir **otra
+variante del mismo mes**: los componentes 2 y 4 se miden en días exactos, así que dos candidatos
+casi idénticos casi nunca empatan, el componente 5 no llega a consultarse y cambiar la semilla
+devuelve el mismo programa. Con los datos reales de la hoja eso pasaba de verdad: dos semillas
+consecutivas podían dar **exactamente** el mismo septiembre, y las columnas de aseo y hospitalidad
+salían idénticas en todas las variantes.
+
+Por eso, entre ordenar y elegir hay un paso más (`orderByVariety` en `domain/scoring.ts`):
+
+1. Se toma el mejor candidato de la lista ya ordenada.
+2. Entran en la **ventana** todos los que no empeoran ningún componente más allá de su holgura:
+
+   | Componente | Holgura | Por qué |
+   |---|---|---|
+   | 0 · carga del mes | **0** | es el equilibrio que pide `CLAUDE.md`; no se negocia |
+   | 1 · veces en la responsabilidad | **0** | es la rotación de tipo; no se negocia |
+   | 2 · antigüedad en la responsabilidad | 30 días | "hace mes y medio" y "hace dos meses" es lo mismo |
+   | 3 · carga histórica | **0** | es la equidad de largo plazo; no se negocia |
+   | 4 · espaciado | 7 días | las fechas son lunes y sábados: dentro de la semana da igual |
+
+3. Dentro de la ventana gana el componente 5 (el hash de la semilla) y, si empata, el `id`.
+
+Los tres componentes de **conteo** van a holgura cero, y de ahí sale la garantía importante: una
+variante nunca puede darle una asignación de más a quien ya lleva más, ni repetirle a nadie una
+responsabilidad que otro no ha hecho, ni cargar al que más ha servido en el historial. Lo único que
+la semilla puede mover es la elección entre candidatos que ya eran equivalentes en todo eso, y cuya
+única diferencia era una precisión en días que el negocio no tiene. La invariante 7 (desviación de
+carga ≤ 1) y la 8 (misma entrada + misma semilla ⇒ misma salida) siguen valiendo tal cual.
+
+Los equipos usan el mismo paso con `TEAM_COST_TOLERANCE`: holgura solo en el componente de fecha.
+
 `costLabelsPerson` (viaja en la traza, para la UI):
 
 ```

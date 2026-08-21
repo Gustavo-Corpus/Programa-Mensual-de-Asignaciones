@@ -79,7 +79,7 @@ export function fromIso(iso: IsoDate): PlainDate;
 export function dayOfWeek(date: PlainDate): number;          // 0-6, convención getDay()
 export function daysBetween(a: IsoDate, b: IsoDate): number; // b - a, en días completos
 export function datesOfMonthMatching(year: number, month: number, daysOfWeek: readonly number[]): PlainDate[];
-export function isoWeekKey(date: PlainDate): string;          // "2026-W32", para agrupar en el PDF
+export function isoWeekKey(date: PlainDate): string;          // "2026-W32" (utilidad; el PDF ya no agrupa por semana ISO)
 export function monthKey(year: number, month: number): string; // "2026-08"
 export function addMonths(year: number, month: number, delta: number): { year: number; month: number };
 export const MONTH_NAMES_ES: readonly string[];               // ["enero", ... "diciembre"]
@@ -449,7 +449,9 @@ se entera sola.
 | `services/programService.ts` | Generar, guardar, editar, bloquear, vaciar y contar un mes | No maqueta ni consulta Firestore directamente |
 | `services/catalogoService.ts` | Reglas del catálogo: clave inmutable, equipos mal formados, huérfanos | No escribe en Firestore |
 | `services/estadisticasService.ts` | Une la ventana de historial con `historyStats` | No calcula nada por su cuenta |
-| `pdf/*` | Maquetar el documento | No decide asignaciones |
+| `pdf/buildPdfModel.ts` | Traducir dominio → modelo de vista (texto ya compuesto y partido en líneas) | No maqueta ni mide |
+| `pdf/layout.ts` | Repartir el alto de la hoja carta entre las fechas del mes; de ahí salen el alto de fila y el cuerpo de los nombres | No conoce el dominio ni `@react-pdf/renderer` |
+| `pdf/ProgramDocument.tsx` | Pintar el documento con lo que le dan `buildPdfModel` y `layout` | No decide asignaciones |
 
 `computeLoadTarget` vive en `domain/stats.ts` y no dentro de `generateProgram.ts` porque la
 pantalla de estadísticas necesita **exactamente** la misma fórmula para decir si alguien va corto

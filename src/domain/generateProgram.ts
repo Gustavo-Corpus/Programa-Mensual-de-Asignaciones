@@ -18,8 +18,15 @@ import type { IsoDate, PlainDate } from './dates';
 import { addMonths, dayOfWeek, DAY_NAMES_ES, fromIso, MONTH_NAMES_ES, toIso } from './dates';
 import { buildSlots } from './slots';
 import { allowsDay, allowsType, canOccupy, captainPool, captainRuleApplies } from './eligibility';
-import { PERSON_COST_LABELS, compareCandidates, personCost, rejectPerson } from './scoring';
-import { TEAM_COST_LABELS, rejectTeam, teamCost } from './teamScoring';
+import {
+  PERSON_COST_LABELS,
+  PERSON_COST_TOLERANCE,
+  compareCandidates,
+  orderByVariety,
+  personCost,
+  rejectPerson,
+} from './scoring';
+import { TEAM_COST_LABELS, TEAM_COST_TOLERANCE, rejectTeam, teamCost } from './teamScoring';
 import { repair } from './repair';
 import { computeLoadTarget, computeStats } from './stats';
 
@@ -673,8 +680,11 @@ export function generateProgram(rawInput: GenerateInput): GenerateOutput {
       }),
     }));
     scored.sort(compareCandidates);
+    // La semilla solo puede cambiar el reparto entre candidatos empatados en
+    // lo que de verdad importa. Ver `orderByVariety` y docs/algoritmo.md §6.
+    const porVariedad = orderByVariety(scored, PERSON_COST_TOLERANCE);
 
-    const winner = scored[0];
+    const winner = porVariedad[0];
     if (winner === undefined) throw new Error('No debería ocurrir: eligible no vacío pero scored sí.');
 
     const winnerState = personStates.get(winner.id);
@@ -685,7 +695,7 @@ export function generateProgram(rawInput: GenerateInput): GenerateOutput {
     winnerState.lastAssignedDate = slot.date;
     winnerState.lastTypeDate.set(slot.typeKey, slot.date);
 
-    const runnersUp: CandidateTrace[] = scored.slice(1, 1 + MAX_RUNNERS_UP).map((c) => ({ id: c.id, cost: c.cost }));
+    const runnersUp: CandidateTrace[] = porVariedad.slice(1, 1 + MAX_RUNNERS_UP).map((c) => ({ id: c.id, cost: c.cost }));
 
     resolved[idx] = {
       date: slot.date,
@@ -838,8 +848,11 @@ export function generateProgram(rawInput: GenerateInput): GenerateOutput {
       }),
     }));
     scored.sort(compareCandidates);
+    // La semilla solo puede cambiar el reparto entre candidatos empatados en
+    // lo que de verdad importa. Ver `orderByVariety` y docs/algoritmo.md §6.
+    const porVariedad = orderByVariety(scored, TEAM_COST_TOLERANCE);
 
-    const winner = scored[0];
+    const winner = porVariedad[0];
     if (winner === undefined) throw new Error('No debería ocurrir: eligible no vacío pero scored sí.');
 
     const winnerState = teamStates.get(winner.id);
@@ -849,7 +862,7 @@ export function generateProgram(rawInput: GenerateInput): GenerateOutput {
     winnerState.assignedDates.add(slot.date);
     winnerState.lastTypeDate.set(slot.typeKey, slot.date);
 
-    const runnersUp: CandidateTrace[] = scored.slice(1, 1 + MAX_RUNNERS_UP).map((c) => ({ id: c.id, cost: c.cost }));
+    const runnersUp: CandidateTrace[] = porVariedad.slice(1, 1 + MAX_RUNNERS_UP).map((c) => ({ id: c.id, cost: c.cost }));
 
     resolved[idx] = {
       date: slot.date,

@@ -20,7 +20,14 @@ import { listPeople } from '@/data/people.repo';
 import { listGroups } from '@/data/groups.repo';
 import { listTeams } from '@/data/teams.repo';
 import { getSettings } from '@/data/settings.repo';
-import { getHistory, getProgram, getTrace, saveProgram, updateProgramDates } from '@/data/programs.repo';
+import {
+  deleteProgram,
+  getHistory,
+  getProgram,
+  getTrace,
+  saveProgram,
+  updateProgramDates,
+} from '@/data/programs.repo';
 import type { ProgramAssignmentDoc, ProgramDateDoc, ProgramDocument } from '@/data/types';
 import { buildPdfModel, buildPdfModelFromStored } from '@/pdf/buildPdfModel';
 import type { ProgramPdfModel } from '@/pdf/model';
@@ -71,16 +78,66 @@ export interface GeneracionResultado {
 }
 
 /**
+ * Cuántas semillas se prueban como mucho al pedir otra variante antes de
+ * darse por satisfecho. Con las casillas casi todas bloqueadas puede que no
+ * exista ninguna variante distinta, y entonces hay que parar en vez de girar
+ * en vano.
+ */
+const MAX_INTENTOS_VARIANTE = 12;
+
+/** Identidad de un reparto: quién ocupa cada casilla, en orden estable. */
+function huella(pares: ReadonlyArray<readonly [string, string]>): string {
+  return [...pares]
+    .map(([casilla, ocupante]) => `${casilla}=${ocupante}`)
+    .sort()
+    .join('\n');
+}
+
+function huellaDeSalida(output: GenerateOutput): string {
+  return huella(
+    output.assignments.map(
+      (a) =>
+        [`${a.date}|${a.typeKey}|${a.slotIndex}`, a.personId ?? a.teamId ?? ''] as const,
+    ),
+  );
+}
+
+function huellaDeGuardado(programa: ProgramDocument): string {
+  return huella(
+    programa.dates.flatMap((d) =>
+      d.assignments.map(
+        (a) => [`${d.date}|${a.typeKey}|${a.slotIndex}`, a.personId ?? a.teamId ?? ''] as const,
+      ),
+    ),
+  );
+}
+
+export interface OpcionesGeneracion {
+  readonly seed?: number;
+  readonly catalogo?: Catalogo;
+  /**
+   * "Probar otra variante": no basta con cambiar la semilla, el resultado
+   * tiene que salir DISTINTO del que ya está guardado. Cambiar la semilla
+   * mueve el desempate, y el desempate solo decide entre candidatos
+   * empatados; si en ese mes no hay empates que romper, la nueva semilla
+   * devuelve exactamente el mismo programa y el administrador ve un botón que
+   * no hace nada. Con esto se prueban semillas hasta que el reparto cambia de
+   * verdad.
+   */
+  readonly distintaDeLaGuardada?: boolean;
+}
+
+/**
  * Genera un mes sin guardarlo. `seed` permite pedir otra variante del mismo
  * mes sin cambiar nada más.
  */
 export async function generarMes(
   year: number,
   month: number,
-  opciones: { seed?: number; catalogo?: Catalogo } = {},
+  opciones: OpcionesGeneracion = {},
 ): Promise<GeneracionResultado> {
   const catalogo = opciones.catalogo ?? (await loadCatalogo());
-  const seed = opciones.seed ?? seedForMonth(year, month);
+  const primeraSemilla = opciones.seed ?? seedForMonth(year, month);
 
   const previousAssignments = await getHistory(
     year,
@@ -104,18 +161,31 @@ export async function generarMes(
       })),
   );
 
-  const output = generateProgram({
-    year,
-    month,
-    people: catalogo.people,
-    teams: catalogo.teams,
-    groups: catalogo.groups,
-    assignmentTypes: catalogo.assignmentTypes,
-    previousAssignments,
-    lockedAssignments,
-    settings: catalogo.settings,
-    seed,
-  });
+  const generar = (seed: number): GenerateOutput =>
+    generateProgram({
+      year,
+      month,
+      people: catalogo.people,
+      teams: catalogo.teams,
+      groups: catalogo.groups,
+      assignmentTypes: catalogo.assignmentTypes,
+      previousAssignments,
+      lockedAssignments,
+      settings: catalogo.settings,
+      seed,
+    });
+
+  let seed = primeraSemilla;
+  let output = generar(seed);
+
+  if (opciones.distintaDeLaGuardada === true && existente !== null) {
+    const anterior = huellaDeGuardado(existente);
+    for (let intento = 0; intento < MAX_INTENTOS_VARIANTE; intento++) {
+      if (huellaDeSalida(output) !== anterior) break;
+      seed += 1;
+      output = generar(seed);
+    }
+  }
 
   return { output, seed, catalogo };
 }
@@ -573,4 +643,17 @@ export function duplicadosPorFecha(programa: ProgramDocument): Map<string, Set<s
 /** La traza vive aparte y solo se lee al abrir el «¿Por qué?». */
 export async function cargarTraza(year: number, month: number): Promise<GenerationTrace | null> {
   return getTrace(year, month);
+}
+
+/**
+ * Borra el mes entero: deja de existir y la pantalla vuelve a ofrecer
+ * "Generar programa" como si nunca se hubiera tocado.
+ *
+ * Es distinto de "Vaciar y asignar a mano", que conserva el mes con sus
+ * fechas y sus bloqueos. Aquí no queda nada: ni casillas, ni candados, ni
+ * semilla, ni traza. Un mes borrado tampoco cuenta ya como historial de los
+ * meses siguientes, que es justo lo que se quiere al empezar de cero.
+ */
+export async function borrarPrograma(year: number, month: number): Promise<void> {
+  await deleteProgram(year, month);
 }

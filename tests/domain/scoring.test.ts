@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   NEVER_DAYS,
   PERSON_COST_LABELS,
+  PERSON_COST_TOLERANCE,
   compareCandidates,
+  orderByVariety,
   daysSince,
   personCost,
   rejectPerson,
@@ -318,5 +320,98 @@ describe('compareCandidates', () => {
       { id: 'y', cost: cost as unknown as readonly number[] }
     );
     expect(result).not.toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Ventana de variedad
+//
+// El fallo que arreglan estas pruebas: "probar otra variante" devolvía el
+// mismo programa una y otra vez porque el componente de desempate (el único
+// que depende de la semilla) casi nunca llegaba a consultarse. Los dos
+// componentes de fecha se comparaban al día exacto, así que dos candidatos
+// prácticamente iguales quedaban siempre en el mismo orden.
+// ---------------------------------------------------------------------------
+
+/** Candidato con tupla de persona: [mes, tipo, antigüedad, hist, espaciado, hash]. */
+function cand(id: string, cost: readonly number[]) {
+  return { id, cost };
+}
+
+describe('orderByVariety', () => {
+  it('deja pasar delante al del hash menor cuando solo se distinguen por días', () => {
+    // Mismos conteos; -19 y -14 son cinco días de diferencia, dentro de la
+    // holgura de espaciado. El del hash menor gana aunque su tupla sea peor.
+    const ordenados = [
+      cand('a', [0, 0, -3650, 2, -19, 900]),
+      cand('b', [0, 0, -3650, 2, -14, 100]),
+    ];
+    expect(orderByVariety(ordenados, PERSON_COST_TOLERANCE).map((c) => c.id)).toEqual(['b', 'a']);
+  });
+
+  it('nunca antepone a alguien con más carga del mes, por bajo que sea su hash', () => {
+    const ordenados = [
+      cand('a', [0, 0, -3650, 2, -14, 900]),
+      cand('b', [1, 0, -3650, 2, -30, 1]),
+    ];
+    expect(orderByVariety(ordenados, PERSON_COST_TOLERANCE).map((c) => c.id)).toEqual(['a', 'b']);
+  });
+
+  it('nunca antepone a alguien que ya ha hecho más veces esa responsabilidad', () => {
+    const ordenados = [
+      cand('a', [0, 0, -3650, 2, -14, 900]),
+      cand('b', [0, 1, -3650, 2, -30, 1]),
+    ];
+    expect(orderByVariety(ordenados, PERSON_COST_TOLERANCE).map((c) => c.id)).toEqual(['a', 'b']);
+  });
+
+  it('nunca antepone a alguien con más carga histórica', () => {
+    const ordenados = [
+      cand('a', [0, 0, -3650, 1, -14, 900]),
+      cand('b', [0, 0, -3650, 2, -30, 1]),
+    ];
+    expect(orderByVariety(ordenados, PERSON_COST_TOLERANCE).map((c) => c.id)).toEqual(['a', 'b']);
+  });
+
+  it('deja fuera de la ventana una diferencia de espaciado mayor que la holgura', () => {
+    // 30 días de diferencia: eso ya no es "prácticamente lo mismo".
+    const ordenados = [
+      cand('a', [0, 0, -3650, 2, -40, 900]),
+      cand('b', [0, 0, -3650, 2, -10, 1]),
+    ];
+    expect(orderByVariety(ordenados, PERSON_COST_TOLERANCE).map((c) => c.id)).toEqual(['a', 'b']);
+  });
+
+  it('con la ventana llena, el orden lo fija el hash y, si empata, el id', () => {
+    const ordenados = [
+      cand('c', [0, 0, -3650, 2, -14, 5]),
+      cand('a', [0, 0, -3650, 2, -14, 5]),
+      cand('b', [0, 0, -3650, 2, -12, 1]),
+    ];
+    expect(orderByVariety(ordenados, PERSON_COST_TOLERANCE).map((c) => c.id)).toEqual(['b', 'a', 'c']);
+  });
+
+  it('conserva detrás el orden original de los que quedan fuera', () => {
+    const ordenados = [
+      cand('a', [0, 0, -3650, 2, -14, 900]),
+      cand('b', [1, 0, -3650, 2, -14, 1]),
+      cand('c', [2, 0, -3650, 2, -14, 2]),
+    ];
+    expect(orderByVariety(ordenados, PERSON_COST_TOLERANCE).map((c) => c.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('devuelve lista vacía si no hay candidatos', () => {
+    expect(orderByVariety([], PERSON_COST_TOLERANCE)).toEqual([]);
+  });
+
+  it('los componentes de conteo no llevan holgura y los de fecha sí', () => {
+    // Si esto cambia, cambia la garantía de equilibrio: es el contrato.
+    expect(PERSON_COST_TOLERANCE[0]).toBe(0); // carga del mes
+    expect(PERSON_COST_TOLERANCE[1]).toBe(0); // veces en la responsabilidad
+    expect(PERSON_COST_TOLERANCE[3]).toBe(0); // carga histórica
+    expect(PERSON_COST_TOLERANCE[2]).toBeGreaterThan(0);
+    expect(PERSON_COST_TOLERANCE[4]).toBeGreaterThan(0);
+    // El desempate no entra en la ventana: es el que decide dentro de ella.
+    expect(PERSON_COST_TOLERANCE.length).toBe(PERSON_COST_LABELS.length - 1);
   });
 });

@@ -131,8 +131,17 @@ describe('ProgramDocument', () => {
     }
 
     expect(extraido).toContain(sinEspacios(programaPdfModel.title));
-    expect(extraido).toContain(sinEspacios(programaPdfModel.footer.line1));
-    expect(extraido).toContain(sinEspacios(programaPdfModel.footer.line2Bold));
+  });
+
+  // El pie de agradecimiento se retiró del diseño: el espacio que ocupaba es
+  // ahora alto de fila. Si vuelve a colarse, la hoja deja de llenar la página.
+  it('no imprime ningún pie de agradecimiento', async () => {
+    const buffer = await renderToBuffer(ProgramDocument({ model: programaPdfModel }));
+    const text = await extractText(buffer);
+    const sinEspacios = text.replace(/\s+/g, '');
+
+    expect(sinEspacios).not.toContain('Graciasporsuservicio');
+    expect(sinEspacios).not.toContain('haceladiferencia');
   });
 
   it('renderiza sin fallar con 4 columnas', async () => {

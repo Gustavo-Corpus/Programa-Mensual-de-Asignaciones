@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import {
   buildPdfModel,
   buildPdfModelFromStored,
-  groupIntoWeekCards,
+  groupIntoCards,
   splitInTwoLines,
 } from '@/pdf/buildPdfModel';
 import { programaPdfModel } from '@/pdf/fixtures';
@@ -131,41 +131,71 @@ describe('splitInTwoLines', () => {
   });
 });
 
-describe('groupIntoWeekCards', () => {
+describe('groupIntoCards', () => {
   const row = (date: string): PdfDateRow => ({
     date, dayName: '', dayNumber: '', monthLabel: '', cells: [],
   });
+  const fechas = (cards: ReturnType<typeof groupIntoCards>): string[][] =>
+    cards.map((c) => c.rows.map((r) => r.date));
 
-  it('empareja cada lunes con el sábado de su misma semana', () => {
-    // Agosto 2026 completo: empieza en sábado, 5 sábados y 5 lunes.
-    const cards = groupIntoWeekCards(
+  it('empareja cada sábado con el lunes SIGUIENTE, no con el de su semana', () => {
+    // Agosto 2026 completo: empieza en sábado, 5 sábados y 5 lunes. Emparejando
+    // por semana ISO salían 6 tarjetas con dos huérfanas; así salen 5 completas.
+    const cards = groupIntoCards(
       ['2026-08-01', '2026-08-03', '2026-08-08', '2026-08-10', '2026-08-15',
        '2026-08-17', '2026-08-22', '2026-08-24', '2026-08-29', '2026-08-31'].map(row),
     );
-    expect(cards.map((c) => c.rows.map((r) => r.date))).toEqual([
-      ['2026-08-01'],
-      ['2026-08-03', '2026-08-08'],
-      ['2026-08-10', '2026-08-15'],
-      ['2026-08-17', '2026-08-22'],
-      ['2026-08-24', '2026-08-29'],
-      ['2026-08-31'],
+    expect(fechas(cards)).toEqual([
+      ['2026-08-01', '2026-08-03'],
+      ['2026-08-08', '2026-08-10'],
+      ['2026-08-15', '2026-08-17'],
+      ['2026-08-22', '2026-08-24'],
+      ['2026-08-29', '2026-08-31'],
     ]);
   });
 
-  it('no se desalinea cuando falta una fecha', () => {
-    // Si se agrupara de dos en dos por posición, quitar el sábado 8 juntaría
-    // el lunes 3 con el lunes 10. Agrupar por semana ISO lo impide.
-    const cards = groupIntoWeekCards(
-      ['2026-08-03', '2026-08-10', '2026-08-15'].map(row),
+  it('septiembre 2026 (empieza en martes) sale en 4 tarjetas completas', () => {
+    const cards = groupIntoCards(
+      ['2026-09-05', '2026-09-07', '2026-09-12', '2026-09-14',
+       '2026-09-19', '2026-09-21', '2026-09-26', '2026-09-28'].map(row),
     );
-    expect(cards.map((c) => c.rows.map((r) => r.date))).toEqual([
-      ['2026-08-03'],
-      ['2026-08-10', '2026-08-15'],
+    expect(fechas(cards)).toEqual([
+      ['2026-09-05', '2026-09-07'],
+      ['2026-09-12', '2026-09-14'],
+      ['2026-09-19', '2026-09-21'],
+      ['2026-09-26', '2026-09-28'],
+    ]);
+  });
+
+  it('se REALINEA cuando falta una fecha, en vez de arrastrar el desfase', () => {
+    // Sin el sábado 8 (asamblea, p. ej.): agrupar de dos en dos por posición
+    // juntaría el lunes 10 con el sábado 15 y desde ahí quedaría todo corrido.
+    // Al mirar la distancia entre fechas, el lunes 10 se queda solo y el resto
+    // vuelve a emparejarse bien.
+    const cards = groupIntoCards(
+      ['2026-08-01', '2026-08-03', '2026-08-10', '2026-08-15', '2026-08-17'].map(row),
+    );
+    expect(fechas(cards)).toEqual([
+      ['2026-08-01', '2026-08-03'],
+      ['2026-08-10'],
+      ['2026-08-15', '2026-08-17'],
+    ]);
+  });
+
+  it('nunca mete más de dos fechas en una tarjeta', () => {
+    // Tres días de reunión seguidos: la tarjeta solo tiene dos filas de alto.
+    const cards = groupIntoCards(
+      ['2026-08-01', '2026-08-03', '2026-08-05', '2026-08-07'].map(row),
+    );
+    expect(cards.every((c) => c.rows.length <= 2)).toBe(true);
+    expect(fechas(cards)).toEqual([
+      ['2026-08-01', '2026-08-03'],
+      ['2026-08-05', '2026-08-07'],
     ]);
   });
 
   it('sin fechas no produce tarjetas', () => {
-    expect(groupIntoWeekCards([])).toEqual([]);
+    expect(groupIntoCards([])).toEqual([]);
   });
 });
 
