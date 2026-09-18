@@ -4,6 +4,7 @@ import {
   CORMORANTGARAMOND_SEMIBOLD,
   MONTSERRAT_REGULAR,
   MONTSERRAT_SEMIBOLD,
+  ZENANTIQUE_REGULAR,
 } from './assets/fonts/embedded';
 
 /**
@@ -39,6 +40,21 @@ import {
 export const FONT_SERIF = 'Cormorant Garamond';
 export const FONT_SANS = 'Montserrat';
 
+/**
+ * Familia SOLO para los números de día de la columna de fechas.
+ *
+ * Zen Antique es una serif de remates afilados y trazo poco decorado, que es lo
+ * que se pidió para las cifras. Lo importante para esta hoja es que sus
+ * números son de CAJA ALTA (todas las cifras miden lo mismo, 0.75 em): es la
+ * razón por la que Cormorant Garamond quedó descartada para este uso —lleva
+ * cifras de estilo antiguo y escribe "IO" donde tiene que poner "10"—.
+ *
+ * Se registra el subconjunto "latin" del paquete original, que trae cifras,
+ * mayúsculas y acentos; los miles de glifos japoneses de la familia completa no
+ * entran en el PDF (el .ttf incrustado son 33 KB).
+ */
+export const FONT_NUMBERS = 'Zen Antique';
+
 export const WEIGHT_REGULAR = 400;
 export const WEIGHT_SEMIBOLD = 600;
 
@@ -66,6 +82,11 @@ export function registerFonts(): void {
       { src: CORMORANTGARAMOND_REGULAR, fontWeight: WEIGHT_REGULAR },
       { src: CORMORANTGARAMOND_SEMIBOLD, fontWeight: WEIGHT_SEMIBOLD },
     ],
+  });
+
+  Font.register({
+    family: FONT_NUMBERS,
+    fonts: [{ src: ZENANTIQUE_REGULAR, fontWeight: WEIGHT_REGULAR }],
   });
 
   Font.register({

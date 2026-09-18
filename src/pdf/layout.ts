@@ -17,6 +17,7 @@ import {
   CONTENT_WIDTH,
   COLUMNS_HEADER,
   DATE_COLUMN_FONT,
+  FONT_METRICS,
   HEADER,
   NAME_FONT,
   ROW_HEIGHT,
@@ -33,6 +34,11 @@ export interface PdfLayout {
   readonly nameLineHeight: number;
   readonly emptyMarkFontSize: number;
   readonly dayNumberFontSize: number;
+  /**
+   * Corrección óptica del número de día, en puntos. Negativa: sube el número.
+   * Ver `dayNumberMarginTop`.
+   */
+  readonly dayNumberMarginTop: number;
   readonly dayNameFontSize: number;
   readonly monthLabelFontSize: number;
   /** `true` cuando el contenido no cupo en una página ni al alto de fila mínimo. */
@@ -85,6 +91,44 @@ export function fixedVerticalSpace(cardCount: number): number {
   return cabeceras + tarjetas;
 }
 
+/**
+ * Cuánto hay que subir el número de día para que quede ÓPTICAMENTE centrado
+ * entre el nombre del día y la etiqueta del mes.
+ *
+ * `@react-pdf/render` dibuja cada línea con la base en `y + ascent`, sin
+ * repartir el sobrante de la caja de línea entre arriba y abajo. Con Zen
+ * Antique, cuyo ascent (1.16 em) está dimensionado para una familia japonesa,
+ * eso deja 0.42 em de aire sobre las cifras y solo 0.28 em por debajo: el
+ * número se ve pegado al fondo de su casilla aunque el bloque entero esté
+ * centrado. Ninguna combinación de `lineHeight` lo arregla, porque el hueco de
+ * ARRIBA no depende de `lineHeight` —es `ascent − alto de cifra`—: hay que
+ * mover la caja.
+ *
+ * La cuenta iguala el aire visible a cada lado de las cifras, contando también
+ * el que ya aportan las cajas de línea de sus vecinas: el descendente vacío que
+ * "LUNES" arrastra por debajo, y el hueco entre el ascent y la mayúscula con el
+ * que empieza "DE AGOSTO". Sale negativa, que es lo esperado: sube el número.
+ */
+export function dayNumberMarginTop(sizes: {
+  readonly dayNumberFontSize: number;
+  readonly dayNameFontSize: number;
+  readonly monthLabelFontSize: number;
+}): number {
+  // "LUNES" y "SÁBADO" no tienen descendentes: su parte visible acaba en la
+  // línea base y lo que sobra de caja es el descendente entero.
+  const bajoElNombreDelDia = FONT_METRICS.sansDescent * sizes.dayNameFontSize;
+  const sobreLasCifras =
+    (FONT_METRICS.numbersAscent - FONT_METRICS.numbersDigitTop) * sizes.dayNumberFontSize;
+  const bajoLasCifras =
+    (FONT_METRICS.numbersDescent - FONT_METRICS.numbersDigitBottom) * sizes.dayNumberFontSize;
+  const sobreLaEtiquetaDelMes =
+    (FONT_METRICS.sansAscent - FONT_METRICS.sansCapHeight) * sizes.monthLabelFontSize;
+
+  const aireDebajo = bajoLasCifras + sobreLaEtiquetaDelMes;
+  const aireEncima = bajoElNombreDelDia + sobreLasCifras;
+  return aireDebajo - aireEncima;
+}
+
 export function computeLayout(model: ProgramPdfModel): PdfLayout {
   const shape = modelShape(model);
 
@@ -114,27 +158,39 @@ export function computeLayout(model: ProgramPdfModel): PdfLayout {
   const porAlto = altoUtilCasilla / (shape.maxLinesPerCell * NAME_FONT.lineHeight);
   const nameFontSize = clamp(Math.min(porAncho, porAlto), NAME_FONT.min, NAME_FONT.max);
 
+  // Los tres cuerpos de la columna de fechas se calculan antes que nada porque
+  // la corrección óptica del número depende de los tres a la vez, no solo del
+  // suyo: el aire de sus vecinas cuenta.
+  const dayNumberFontSize = clamp(
+    rowHeight * DATE_COLUMN_FONT.dayNumberRatio,
+    DATE_COLUMN_FONT.dayNumberMin,
+    DATE_COLUMN_FONT.dayNumberMax,
+  );
+  const dayNameFontSize = clamp(
+    rowHeight * DATE_COLUMN_FONT.dayNameRatio,
+    DATE_COLUMN_FONT.dayNameMin,
+    DATE_COLUMN_FONT.dayNameMax,
+  );
+  const monthLabelFontSize = clamp(
+    rowHeight * DATE_COLUMN_FONT.monthLabelRatio,
+    DATE_COLUMN_FONT.monthLabelMin,
+    DATE_COLUMN_FONT.monthLabelMax,
+  );
+
   return {
     rowHeight,
     cellContentWidth,
     nameFontSize,
     nameLineHeight: NAME_FONT.lineHeight,
     emptyMarkFontSize: nameFontSize,
-    dayNumberFontSize: clamp(
-      rowHeight * DATE_COLUMN_FONT.dayNumberRatio,
-      DATE_COLUMN_FONT.dayNumberMin,
-      DATE_COLUMN_FONT.dayNumberMax,
-    ),
-    dayNameFontSize: clamp(
-      rowHeight * DATE_COLUMN_FONT.dayNameRatio,
-      DATE_COLUMN_FONT.dayNameMin,
-      DATE_COLUMN_FONT.dayNameMax,
-    ),
-    monthLabelFontSize: clamp(
-      rowHeight * DATE_COLUMN_FONT.monthLabelRatio,
-      DATE_COLUMN_FONT.monthLabelMin,
-      DATE_COLUMN_FONT.monthLabelMax,
-    ),
+    dayNumberFontSize,
+    dayNumberMarginTop: dayNumberMarginTop({
+      dayNumberFontSize,
+      dayNameFontSize,
+      monthLabelFontSize,
+    }),
+    dayNameFontSize,
+    monthLabelFontSize,
     overflowsOnePage,
   };
 }

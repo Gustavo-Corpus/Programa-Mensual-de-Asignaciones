@@ -25,7 +25,7 @@ const COLUMNS: ProgramPdfModel['columns'] = [
   { typeKey: 'pasillo_izquierdo', label: 'PASILLO IZQUIERDO', icon: 'arrow-left' },
   { typeKey: 'pasillo_derecho', label: 'PASILLO DERECHO', icon: 'arrow-right' },
   { typeKey: 'aseo', label: 'ASEO', icon: 'broom' },
-  { typeKey: 'hospitalidad', label: 'HOSPITALIDAD', icon: 'hands-heart' },
+  { typeKey: 'hospitalidad', label: 'HOSPITALIDAD', icon: 'people' },
 ];
 
 const MONTH_LABEL = 'DE AGOSTO';
@@ -215,8 +215,9 @@ export const programaPdfModelLargo: ProgramPdfModel = buildProgramaPdfModelLargo
  *
  * La hoja de referencia tiene 9 fechas porque omite el sábado 1. Pero un mes de
  * 31 días que empieza en sábado tiene 5 sábados y 5 lunes = 10 fechas, que se
- * reparten en 5 tarjetas completas de dos filas. Agosto de 2026 es exactamente
- * ese mes, y es el que más filas mete en una sola página.
+ * reparten en 6 tarjetas: cuatro completas más el sábado 1 y el lunes 31, que
+ * caen en semanas de las que no hay ninguna otra fecha en el mes. Agosto de
+ * 2026 es exactamente ese mes, y es el que más filas mete en una sola página.
  *
  * Este es el modelo que tiene que caber en una sola página. Si deja de caber,
  * el programa se parte en dos hojas y hay que reimprimir: no es un detalle

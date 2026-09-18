@@ -138,59 +138,74 @@ describe('groupIntoCards', () => {
   const fechas = (cards: ReturnType<typeof groupIntoCards>): string[][] =>
     cards.map((c) => c.rows.map((r) => r.date));
 
-  it('empareja cada sábado con el lunes SIGUIENTE, no con el de su semana', () => {
-    // Agosto 2026 completo: empieza en sábado, 5 sábados y 5 lunes. Emparejando
-    // por semana ISO salían 6 tarjetas con dos huérfanas; así salen 5 completas.
+  it('empareja cada sábado con el lunes de SU MISMA semana, no con el siguiente', () => {
+    // Agosto 2026 completo: empieza en sábado, 5 sábados y 5 lunes. El sábado 1
+    // pertenece a la semana de julio, así que se queda solo en su tarjeta; a
+    // partir de ahí cada lunes va con el sábado que le sigue dentro de la
+    // misma semana, y el lunes 31 abre la última.
     const cards = groupIntoCards(
       ['2026-08-01', '2026-08-03', '2026-08-08', '2026-08-10', '2026-08-15',
        '2026-08-17', '2026-08-22', '2026-08-24', '2026-08-29', '2026-08-31'].map(row),
     );
     expect(fechas(cards)).toEqual([
-      ['2026-08-01', '2026-08-03'],
-      ['2026-08-08', '2026-08-10'],
-      ['2026-08-15', '2026-08-17'],
-      ['2026-08-22', '2026-08-24'],
-      ['2026-08-29', '2026-08-31'],
+      ['2026-08-01'],
+      ['2026-08-03', '2026-08-08'],
+      ['2026-08-10', '2026-08-15'],
+      ['2026-08-17', '2026-08-22'],
+      ['2026-08-24', '2026-08-29'],
+      ['2026-08-31'],
     ]);
   });
 
-  it('septiembre 2026 (empieza en martes) sale en 4 tarjetas completas', () => {
+  it('septiembre 2026 (empieza en martes) parte el sábado 5 de la semana del lunes 7', () => {
     const cards = groupIntoCards(
       ['2026-09-05', '2026-09-07', '2026-09-12', '2026-09-14',
        '2026-09-19', '2026-09-21', '2026-09-26', '2026-09-28'].map(row),
     );
     expect(fechas(cards)).toEqual([
-      ['2026-09-05', '2026-09-07'],
-      ['2026-09-12', '2026-09-14'],
-      ['2026-09-19', '2026-09-21'],
-      ['2026-09-26', '2026-09-28'],
+      ['2026-09-05'],
+      ['2026-09-07', '2026-09-12'],
+      ['2026-09-14', '2026-09-19'],
+      ['2026-09-21', '2026-09-26'],
+      ['2026-09-28'],
     ]);
   });
 
-  it('se REALINEA cuando falta una fecha, en vez de arrastrar el desfase', () => {
+  it('la semana manda aunque cambie el año ISO', () => {
+    // El jueves 31/12/2026 y el sábado 2/1/2027 son la MISMA semana ISO
+    // (2026-W53). Agrupar por "YYYY-MM" o por año natural los separaría.
+    const cards = groupIntoCards(['2026-12-31', '2027-01-02', '2027-01-04'].map(row));
+    expect(fechas(cards)).toEqual([
+      ['2026-12-31', '2027-01-02'],
+      ['2027-01-04'],
+    ]);
+  });
+
+  it('una fecha que falta no arrastra a las demás fuera de su semana', () => {
     // Sin el sábado 8 (asamblea, p. ej.): agrupar de dos en dos por posición
     // juntaría el lunes 10 con el sábado 15 y desde ahí quedaría todo corrido.
-    // Al mirar la distancia entre fechas, el lunes 10 se queda solo y el resto
-    // vuelve a emparejarse bien.
+    // Mirando la semana, el lunes 3 se queda solo y el resto no se entera.
     const cards = groupIntoCards(
       ['2026-08-01', '2026-08-03', '2026-08-10', '2026-08-15', '2026-08-17'].map(row),
     );
     expect(fechas(cards)).toEqual([
-      ['2026-08-01', '2026-08-03'],
-      ['2026-08-10'],
-      ['2026-08-15', '2026-08-17'],
+      ['2026-08-01'],
+      ['2026-08-03'],
+      ['2026-08-10', '2026-08-15'],
+      ['2026-08-17'],
     ]);
   });
 
   it('nunca mete más de dos fechas en una tarjeta', () => {
-    // Tres días de reunión seguidos: la tarjeta solo tiene dos filas de alto.
+    // Cuatro días de reunión en la MISMA semana: la tarjeta solo tiene dos
+    // filas de alto, así que la semana se parte en dos tarjetas.
     const cards = groupIntoCards(
-      ['2026-08-01', '2026-08-03', '2026-08-05', '2026-08-07'].map(row),
+      ['2026-08-03', '2026-08-05', '2026-08-07', '2026-08-08'].map(row),
     );
     expect(cards.every((c) => c.rows.length <= 2)).toBe(true);
     expect(fechas(cards)).toEqual([
-      ['2026-08-01', '2026-08-03'],
-      ['2026-08-05', '2026-08-07'],
+      ['2026-08-03', '2026-08-05'],
+      ['2026-08-07', '2026-08-08'],
     ]);
   });
 

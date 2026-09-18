@@ -18,7 +18,7 @@
     { "id": "t3", "key": "pasillo_izquierdo",    "label": "Pasillo izquierdo",       "kind": "PERSON", "daysOfWeek": [1, 6], "slotsPerDate": 1, "order": 3, "icon": "arrow-left",  "active": true },
     { "id": "t4", "key": "pasillo_derecho",      "label": "Pasillo derecho",         "kind": "PERSON", "daysOfWeek": [1, 6], "slotsPerDate": 1, "order": 4, "icon": "arrow-right", "active": true },
     { "id": "t5", "key": "aseo",                 "label": "Aseo",                    "kind": "GROUP",  "daysOfWeek": [1, 6], "slotsPerDate": 1, "order": 5, "icon": "broom",       "active": true },
-    { "id": "t6", "key": "hospitalidad",         "label": "Hospitalidad",            "kind": "GROUP",  "daysOfWeek": [6],    "slotsPerDate": 1, "order": 6, "icon": "hands-heart", "active": true }
+    { "id": "t6", "key": "hospitalidad",         "label": "Hospitalidad",            "kind": "GROUP",  "daysOfWeek": [6],    "slotsPerDate": 1, "order": 6, "icon": "people",      "active": true }
   ],
 
   "people": [

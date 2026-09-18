@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { computeLayout, fixedVerticalSpace, modelShape } from '@/pdf/layout';
-import { CONTENT_HEIGHT, NAME_FONT, ROW_HEIGHT } from '@/pdf/theme';
+import { computeLayout, dayNumberMarginTop, fixedVerticalSpace, modelShape } from '@/pdf/layout';
+import { CONTENT_HEIGHT, FONT_METRICS, NAME_FONT, ROW_HEIGHT } from '@/pdf/theme';
 import {
   programaPdfModel,
   programaPdfModelLargo,
@@ -119,6 +119,55 @@ describe('computeLayout — cuerpo de los nombres', () => {
     const layout = computeLayout(conCuatroLineas);
     const altoTexto = 4 * layout.nameLineHeight * layout.nameFontSize;
     expect(altoTexto).toBeLessThanOrEqual(layout.rowHeight);
+  });
+});
+
+describe('dayNumberMarginTop — centrado óptico del número de día', () => {
+  /**
+   * Aire visible por encima y por debajo de las cifras, ya con la corrección
+   * aplicada. Es la misma cuenta que hace la función, escrita al revés: si
+   * ambos salen iguales, el número está ópticamente centrado.
+   */
+  function aires(dayNumberFontSize: number, dayNameFontSize: number, monthLabelFontSize: number) {
+    const sizes = { dayNumberFontSize, dayNameFontSize, monthLabelFontSize };
+    const encima =
+      FONT_METRICS.sansDescent * dayNameFontSize +
+      dayNumberMarginTop(sizes) +
+      (FONT_METRICS.numbersAscent - FONT_METRICS.numbersDigitTop) * dayNumberFontSize;
+    const debajo =
+      (FONT_METRICS.numbersDescent - FONT_METRICS.numbersDigitBottom) * dayNumberFontSize +
+      (FONT_METRICS.sansAscent - FONT_METRICS.sansCapHeight) * monthLabelFontSize;
+    return { encima, debajo };
+  }
+
+  it.each([
+    ['cuerpo máximo (mes de pocas fechas)', 30, 7.5, 7.2],
+    ['cuerpo intermedio', 20, 5.75, 5.25],
+    ['cuerpo mínimo (mes de muchas fechas)', 16, 5.4, 5],
+  ])('deja el mismo aire arriba y abajo con %s', (_caso, num, dia, mes) => {
+    const { encima, debajo } = aires(num, dia, mes);
+    expect(encima).toBeCloseTo(debajo, 6);
+  });
+
+  it('sube el número: la corrección es negativa en todos los cuerpos reales', () => {
+    const layout = computeLayout(programaPdfModel);
+    expect(layout.dayNumberMarginTop).toBeLessThan(0);
+  });
+
+  it('la columna de fechas sigue cabiendo en el alto de fila', () => {
+    // Las tres líneas más la corrección no pueden desbordar la casilla: si lo
+    // hicieran, "DE AGOSTO" se saldría de la tarjeta sin que nada fallara.
+    for (const model of [programaPdfModel, programaPdfModelMesCompleto, programaPdfModelLargo]) {
+      const layout = computeLayout(model);
+      const cajaSans = FONT_METRICS.sansAscent + FONT_METRICS.sansDescent;
+      const cajaNumeros = FONT_METRICS.numbersAscent + FONT_METRICS.numbersDescent;
+      const alto =
+        cajaSans * layout.dayNameFontSize +
+        layout.dayNumberMarginTop +
+        cajaNumeros * layout.dayNumberFontSize +
+        cajaSans * layout.monthLabelFontSize;
+      expect(alto).toBeLessThanOrEqual(layout.rowHeight);
+    }
   });
 });
 

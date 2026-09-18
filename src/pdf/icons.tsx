@@ -129,19 +129,39 @@ function HandsHeartGlyph({ color }: { color: string }): JSX.Element {
   );
 }
 
+/**
+ * Dos personas, una delante y otra asomando detrás.
+ *
+ * La de atrás se dibuja como una cabeza ABIERTA por la izquierda —un arco de
+ * unos 250°, no un círculo entero— y con el hombro arrancando ya fuera del
+ * cuerpo de delante: es lo que da la lectura de "está detrás". Con dos círculos
+ * completos y dos arcos simétricos las dos figuras parecían estar una al lado
+ * de la otra, no una detrás de otra.
+ *
+ * Todo el trazado va en curvas cúbicas y no en arcos `A`: el resto de este
+ * archivo hace lo mismo y así el glifo no depende de cómo resuelva los arcos el
+ * intérprete de SVG de `@react-pdf/renderer`.
+ */
 function PeopleGlyph({ color }: { color: string }): JSX.Element {
   return (
     <>
-      <Circle cx={8.5} cy={8} r={3} stroke={color} strokeWidth={STROKE_WIDTH} fill="none" />
-      <Circle cx={16} cy={9} r={2.4} stroke={color} strokeWidth={STROKE_WIDTH} fill="none" />
+      {/* Persona de atrás: cabeza abierta por el lado que tapa la de delante. */}
       <Path
-        d="M2.8 20c0-3.6 2.6-6.2 5.7-6.2s5.7 2.6 5.7 6.2"
+        d="M14.58 5.84 C16.57 4.45 19.3 5.87 19.3 8.3 C19.3 10.73 16.57 12.15 14.58 10.76"
         stroke={color}
         strokeWidth={STROKE_WIDTH}
         fill="none"
       />
       <Path
-        d="M13.6 20c0-2.9 1.85-5.1 4.3-5.1s4.3 2.2 4.3 5.1"
+        d="M16.4 14.4 C19.2 14.9 21.4 17.3 21.4 20.4"
+        stroke={color}
+        strokeWidth={STROKE_WIDTH}
+        fill="none"
+      />
+      {/* Persona de delante. */}
+      <Circle cx={9.3} cy={8.6} r={3.8} stroke={color} strokeWidth={STROKE_WIDTH} fill="none" />
+      <Path
+        d="M3.2 20.8 C3.2 16.6 5.9 14.2 9.3 14.2 C12.7 14.2 15.4 16.6 15.4 20.8"
         stroke={color}
         strokeWidth={STROKE_WIDTH}
         fill="none"

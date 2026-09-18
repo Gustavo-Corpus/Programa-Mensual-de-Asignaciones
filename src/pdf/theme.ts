@@ -121,6 +121,14 @@ export const WEEK_CARD = {
   /** Aire mínimo arriba y abajo del texto de una casilla. */
   cellPaddingVertical: 6,
   cellPaddingHorizontal: 4,
+  /**
+   * Largo del separador entre las dos fechas de una tarjeta DENTRO de la
+   * columna de fechas. Es corto a propósito —menos de la mitad de la columna—
+   * porque ahí no separa columnas, solo marca dónde acaba una fecha y empieza
+   * la otra: una línea de punta a punta partiría la tarjeta en dos y desharía
+   * la idea de que las dos fechas son la misma semana.
+   */
+  dateDividerWidth: 34,
 } as const;
 
 export const COLUMNS_HEADER = {
@@ -169,6 +177,38 @@ export const ROW_HEIGHT = {
 } as const;
 
 /**
+ * Métricas verticales de las tipografías, en fracción de em.
+ *
+ * Están aquí porque `layout.ts` las necesita para CENTRAR ÓPTICAMENTE el número
+ * de día, y no hay forma de deducirlas del documento: `@react-pdf/render` coloca
+ * la línea base de cada línea en `y + ascent` de la fuente, sin repartir el
+ * sobrante entre arriba y abajo como haría un navegador. Con una fuente de
+ * ascent normal eso da un resultado casi centrado por casualidad; con Zen
+ * Antique no, porque su ascent (1.16 em) viene dimensionado para los kana de la
+ * familia japonesa original y las cifras no lo usan. El resultado es que el
+ * número cae claramente por debajo del centro de su casilla si no se corrige.
+ *
+ * Los valores están medidos sobre los .ttf incrustados. Si se cambia de familia
+ * tipográfica hay que volver a medirlos:
+ *   node -e "const f=require('fontkit').openSync(RUTA); ..."
+ */
+export const FONT_METRICS = {
+  /** Montserrat. Regular y SemiBold comparten métricas verticales. */
+  sansAscent: 0.968,
+  sansDescent: 0.251,
+  /** Alto de una mayúscula, medido sobre la "S" de la SemiBold. */
+  sansCapHeight: 0.71,
+
+  /** Zen Antique, la familia del número de día. */
+  numbersAscent: 1.16,
+  numbersDescent: 0.288,
+  /** Alto de una cifra por encima de la línea base. */
+  numbersDigitTop: 0.738,
+  /** Lo que las cifras redondas ("0", "3", "8") sobresalen por debajo. */
+  numbersDigitBottom: 0.012,
+} as const;
+
+/**
  * Cuerpo de los nombres. Es lo que se lee de lejos y lo que pidió agrandarse,
  * así que el mínimo es deliberadamente alto: antes que encoger la letra por
  * debajo de esto, el documento prefiere pasar a dos páginas.
@@ -192,18 +232,18 @@ export const NAME_FONT = {
 /**
  * Tamaños de la columna de fechas, en fracción del alto de fila.
  *
- * El número de día va en Montserrat, NO en Cormorant Garamond, y no es una
- * preferencia estética: Cormorant lleva cifras de estilo antiguo. Su "1" no
- * tiene bandera y sale como una I con serifas, y su "0" es de altura de x, así
- * que "10" se lee "IO", "12" se lee "I2" y "21" se lee "2I". En una hoja de
- * fechas eso no es un matiz tipográfico, es un número mal leído.
- * `@react-pdf/renderer` no expone las características OpenType, así que no hay
- * forma de pedirle a Cormorant cifras de caja alta: la salida es cambiar de
- * familia solo para el número.
+ * El número de día va en Zen Antique (`FONT_NUMBERS`), NO en Cormorant
+ * Garamond, y no es una preferencia estética: Cormorant lleva cifras de estilo
+ * antiguo. Su "1" no tiene bandera y sale como una I con serifas, y su "0" es
+ * de altura de x, así que "10" se lee "IO", "12" se lee "I2" y "21" se lee
+ * "2I". En una hoja de fechas eso no es un matiz tipográfico, es un número mal
+ * leído. `@react-pdf/renderer` no expone las características OpenType, así que
+ * no hay forma de pedirle a Cormorant cifras de caja alta: la salida es cambiar
+ * de familia solo para el número.
  *
- * El cambio de familia obliga a rebajar el tamaño: las cifras de Montserrat
- * ocupan casi toda la altura de caja alta, mientras que las de Cormorant se
- * quedan a media altura. El mismo cuerpo en puntos se ve bastante más grande.
+ * Las cifras de Zen Antique son de caja alta y miden 0.75 em, casi lo mismo que
+ * las de Montserrat (0.71 em), así que las proporciones de abajo siguen valiendo
+ * tras el cambio de familia.
  */
 export const DATE_COLUMN_FONT = {
   dayNumberRatio: 0.4,

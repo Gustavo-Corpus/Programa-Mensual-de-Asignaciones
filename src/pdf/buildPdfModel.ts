@@ -2,7 +2,7 @@ import {
   DAY_NAMES_ES,
   MONTH_NAMES_ES,
   fromIso,
-  daysBetween,
+  isoWeekKey,
 } from '../domain/dates';
 import { TEAM_PREFIX, teamDisplayText } from '../domain/teams';
 import type {
@@ -159,51 +159,43 @@ export function buildPdfModel(input: BuildPdfModelInput): ProgramPdfModel {
   };
 }
 
-/**
- * Máxima separación, en días, entre dos fechas para que compartan tarjeta.
- *
- * Con la pareja habitual —sábado y el lunes siguiente— la distancia es de 2
- * días. Se admite hasta 3 para que la regla siga valiendo si el administrador
- * configura otros días de reunión (miércoles y sábado, por ejemplo), sin llegar
- * nunca a los 5 días que separan un lunes del sábado de su propia semana.
- */
-const MAX_DIAS_MISMA_TARJETA = 3;
-
 /** Nunca más de dos fechas por tarjeta: la tarjeta está diseñada para dos filas. */
 const MAX_FILAS_POR_TARJETA = 2;
 
 /**
- * Agrupa las filas en tarjetas de dos fechas seguidas.
+ * Agrupa las filas en tarjetas, una por SEMANA.
  *
- * Una tarjeta junta un sábado con el LUNES SIGUIENTE, no con el lunes de su
- * misma semana. Es lo que pide la hoja de referencia, y es también lo que hace
- * que el mes salga en tarjetas completas: agrupando por semana ISO, un mes que
- * abre en sábado y cierra en lunes deja una fecha huérfana arriba y otra abajo,
- * y esas dos medias tarjetas desperdician alto que debería ser de las filas.
+ * La semana es la civil ISO: de lunes a domingo. Por eso un sábado va con el
+ * lunes ANTERIOR —el de su propia semana— y no con el lunes siguiente, que ya
+ * pertenece a la semana de después. En un mes que abre en sábado eso deja ese
+ * primer sábado solo en su tarjeta, y es lo correcto: la tarjeta representa una
+ * semana, no una pareja de fechas cualesquiera.
  *
- * El criterio es la DISTANCIA entre fechas consecutivas, no el nombre del día:
- * dos fechas van juntas si las separan como mucho `MAX_DIAS_MISMA_TARJETA`
- * días. Así el emparejado no se desalinea si falta una fecha (un sábado de
- * asamblea, por ejemplo) —la fecha suelta forma su propia tarjeta y las demás
- * siguen bien emparejadas— y sigue funcionando con otros días de reunión, sin
- * que este módulo tenga que saber qué es un sábado.
+ * El criterio es la semana ISO, no la distancia entre fechas ni el nombre del
+ * día. Así el emparejado no se desalinea si falta una fecha (un sábado de
+ * asamblea, por ejemplo) —la fecha suelta se queda sola en la tarjeta de su
+ * semana— y sigue funcionando con otros días de reunión, sin que este módulo
+ * tenga que saber qué es un sábado.
+ *
+ * `MAX_FILAS_POR_TARJETA` manda por encima de la semana: si el administrador
+ * configura tres días de reunión, la semana se parte en dos tarjetas antes que
+ * dibujar una tarjeta de tres filas, para la que no está diseñada.
  */
 export function groupIntoCards(rows: readonly PdfDateRow[]): PdfWeekCard[] {
   const cards: PdfWeekCard[] = [];
   let current: PdfDateRow[] = [];
+  let semanaActual: string | null = null;
 
   for (const row of rows) {
-    const anterior = current[current.length - 1];
-    const cabeEnLaActual =
-      anterior !== undefined &&
-      current.length < MAX_FILAS_POR_TARJETA &&
-      daysBetween(anterior.date, row.date) <= MAX_DIAS_MISMA_TARJETA;
+    const semana = isoWeekKey(fromIso(row.date));
+    const cabeEnLaActual = semana === semanaActual && current.length < MAX_FILAS_POR_TARJETA;
 
     if (!cabeEnLaActual) {
       if (current.length > 0) cards.push({ rows: current });
       current = [];
     }
     current.push(row);
+    semanaActual = semana;
   }
   if (current.length > 0) cards.push({ rows: current });
 

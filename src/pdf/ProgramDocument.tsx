@@ -4,8 +4,15 @@ import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 import type { ProgramPdfModel, PdfColumn, PdfWeekCard, PdfDateRow, PdfCell } from './model';
 import { computeLayout, type PdfLayout } from './layout';
 import { Icon } from './icons';
-import { registerFonts, FONT_SERIF, FONT_SANS, WEIGHT_SEMIBOLD } from './fonts';
-import { COLORS, SUBTITLE_COLOR, PAGE, HEADER, COLUMNS_HEADER, WEEK_CARD } from './theme';
+import { registerFonts, FONT_SERIF, FONT_SANS, FONT_NUMBERS, WEIGHT_SEMIBOLD } from './fonts';
+import {
+  COLORS,
+  SUBTITLE_COLOR,
+  PAGE,
+  HEADER,
+  COLUMNS_HEADER,
+  WEEK_CARD,
+} from './theme';
 
 registerFonts();
 
@@ -155,27 +162,52 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.columnaFecha,
     position: 'relative',
   },
+  // "SÁBADO" y "DE SEPTIEMBRE" van en SemiBold: son las dos líneas más
+  // pequeñas de la hoja, van espaciadas y sobre beige, y en Regular se leían
+  // lavadas. Montserrat SemiBold tiene las mismas métricas verticales que la
+  // Regular, así que engordarlas no mueve nada de sitio.
   dayName: {
     fontFamily: FONT_SANS,
+    fontWeight: WEIGHT_SEMIBOLD,
     letterSpacing: WEEK_CARD.dayNameLetterSpacing,
     color: COLORS.textoFecha,
     textAlign: 'center',
     textTransform: 'uppercase',
   },
-  // Montserrat y no Cormorant: ver la nota de DATE_COLUMN_FONT en theme.ts.
+  // Zen Antique y no Cormorant: ver la nota de DATE_COLUMN_FONT en theme.ts.
   // Cormorant escribiría "IO" donde tiene que poner "10".
+  //
+  // Sin `lineHeight` propio: la caja natural de la fuente es justo la que deja
+  // el aire correcto BAJO las cifras. Lo que sobra por arriba lo corrige
+  // `layout.dayNumberMarginTop`, no un interlineado.
   dayNumber: {
-    fontFamily: FONT_SANS,
+    fontFamily: FONT_NUMBERS,
     color: COLORS.dorado,
     textAlign: 'center',
-    marginTop: 1,
   },
   monthLabel: {
     fontFamily: FONT_SANS,
+    fontWeight: WEIGHT_SEMIBOLD,
     color: COLORS.textoFecha,
     textAlign: 'center',
     textTransform: 'uppercase',
-    marginTop: 1,
+  },
+  /**
+   * Continuación del separador de filas DENTRO de la columna de fechas.
+   *
+   * Va suelto y posicionado en absoluto sobre la columna, no como borde de la
+   * celda de fecha: así no consume alto y las dos fechas siguen midiendo
+   * exactamente `rowHeight`, que es de lo que depende que caigan alineadas con
+   * sus filas de asignaciones. Es corto y centrado a propósito
+   * (`dateDividerWidth`): marca la separación sin partir la tarjeta en dos.
+   */
+  dateDivider: {
+    position: 'absolute',
+    left: (WEEK_CARD.dateColumnWidth - WEEK_CARD.dateDividerWidth) / 2,
+    width: WEEK_CARD.dateDividerWidth,
+    height: 0,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.divisorFila,
   },
   assignmentZone: {
     flex: 1,
@@ -233,7 +265,12 @@ function createLayoutStyles(layout: PdfLayout) {
     },
     emptyMarkSized: { fontSize: layout.emptyMarkFontSize },
     dayNameSized: { fontSize: layout.dayNameFontSize },
-    dayNumberSized: { fontSize: layout.dayNumberFontSize },
+    // El margen negativo es la corrección óptica del número: ver
+    // `dayNumberMarginTop` en layout.ts.
+    dayNumberSized: {
+      fontSize: layout.dayNumberFontSize,
+      marginTop: layout.dayNumberMarginTop,
+    },
     monthLabelSized: { fontSize: layout.monthLabelFontSize },
   });
 }
@@ -331,7 +368,15 @@ function AssignmentCell({ cell, ls }: { cell: PdfCell; ls: LayoutStyles }): JSX.
   );
 }
 
-function WeekCard({ card, ls }: { card: PdfWeekCard; ls: LayoutStyles }): JSX.Element {
+function WeekCard({
+  card,
+  ls,
+  layout,
+}: {
+  card: PdfWeekCard;
+  ls: LayoutStyles;
+  layout: PdfLayout;
+}): JSX.Element {
   return (
     <View style={styles.weekCardWrap} wrap={false}>
       <View style={styles.weekCardShadow} />
@@ -340,6 +385,13 @@ function WeekCard({ card, ls }: { card: PdfWeekCard; ls: LayoutStyles }): JSX.El
         <View style={styles.dateColumn}>
           {card.rows.map((row) => (
             <DateCell key={row.date} row={row} ls={ls} />
+          ))}
+          {/* Un separador por cada junta entre fechas, en el borde de la fila. */}
+          {card.rows.slice(1).map((row, index) => (
+            <View
+              key={`sep-${row.date}`}
+              style={[styles.dateDivider, { top: (index + 1) * layout.rowHeight }]}
+            />
           ))}
         </View>
         <View style={styles.assignmentZone}>
@@ -374,7 +426,7 @@ export function ProgramDocument({ model }: { model: ProgramPdfModel }): JSX.Elem
         <ColumnsHeader columns={model.columns} />
         <View>
           {model.weeks.map((card, index) => (
-            <WeekCard key={index} card={card} ls={ls} />
+            <WeekCard key={index} card={card} ls={ls} layout={layout} />
           ))}
         </View>
       </Page>
